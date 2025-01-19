@@ -28,12 +28,6 @@ struct ResultsView: View {
         return Gradient(colors: [AppColors.Primary500.color, AppColors.Primary500.color.opacity(0.1)])
     }
     
-    func getSafeAreaInset() -> UIEdgeInsets {
-        let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene
-        let safeAreaInsets = scene?.windows.first?.safeAreaInsets ?? .zero
-        return safeAreaInsets
-    }
-    
     var body: some View {
         let safeAreaInsets = getSafeAreaInset()
         
@@ -180,14 +174,7 @@ struct ResultsView: View {
                         alignment: .leading
                     )
                 }
-                .safeAreaPadding(
-                    .init(
-                        top: safeAreaInsets.top,
-                        leading: safeAreaInsets.left,
-                        bottom: safeAreaInsets.bottom,
-                        trailing: safeAreaInsets.right
-                    )
-                )
+                .safeAreaPadding(safeAreaInsets)
                 .padding(.horizontal, 24)
                 .padding(.vertical, 24)
             }

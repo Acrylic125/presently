@@ -77,6 +77,9 @@ struct ContentView: View {
                 NavigationLink("Results") {
                     ResultsView(title: "Playground Observations")
                 }
+                NavigationLink("Presentation") {
+                    PresentationView(title: "Playground Observations")
+                }
                 Spacer()
             }
             .frame(
