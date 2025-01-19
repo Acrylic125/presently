@@ -8,6 +8,7 @@ struct TokenizedTextView: View {
             partialResult + Text(token.text)
                 .foregroundColor(token.type == .highlight ? AppColors.Primary500.color : AppColors.Gray50.color)
         }
+        .frame(maxHeight: .infinity)
     }
 }
 
@@ -23,7 +24,7 @@ struct PresentationOverviewView: View {
 
     var body: some View {
         let safeAreaInsets = getSafeAreaInset()
-        let pimgHeight = 260.0
+        let pimgHeight = 220.0
         
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
@@ -64,7 +65,7 @@ struct PresentationOverviewView: View {
                             .resizable()
                             .scaledToFit()
                             .frame(
-                                maxHeight: pimgHeight * 2/3
+                                maxHeight: pimgHeight * 3/4
                             )
                     }
                 }
@@ -98,7 +99,8 @@ struct PresentationOverviewView: View {
 
             }
             .safeAreaPadding(safeAreaInsets)
-            .padding(.vertical, 24)
+            .padding(.top, 24)
+            .padding(.bottom, 120)
         }
         .frame(
             maxWidth: .infinity,
@@ -153,49 +155,6 @@ struct PresentationOverviewView: View {
                 )
                 Spacer()
             }
-//            HStack {
-//                Spacer()
-//                HStack(spacing: 12) {
-//                    Button(action: {
-//                        viewType = .Prepare
-//                        HapticsImpactLight.impactOccurred()
-//                    }) {
-//                        HStack {
-//                            Text("Prepare")
-//                        }
-//                        .foregroundColor(AppColors.Primary500.color)
-//                        .padding(.horizontal, 16)
-//                        .padding(.vertical, 12)
-//                        .background(
-//                            RoundedRectangle(cornerRadius: 12)
-//                                .fill(AppColors.Gray900.color)
-//                                .stroke(AppColors.Primary500.color, lineWidth: 1)
-//                        )
-//                    }
-//                    
-//                    Button(action: {
-//                        viewType = .Present
-//                        HapticsImpactLight.impactOccurred()
-//                    }) {
-//                        HStack {
-//                            Text("Start")
-//                                .fontWeight(.black)
-//                        }
-//                        .foregroundColor(AppColors.Gray50.color)
-//                        .padding(.horizontal, 16)
-//                        .padding(.vertical, 12)
-//                        .background(
-//                            RoundedRectangle(cornerRadius: 12)
-//                                .fill(AppColors.Primary700.color)
-//                                .stroke(AppColors.Primary500.color, lineWidth: 1)
-//                        )
-//                    }
-//                }
-//                .frame(
-//                    alignment: .center
-//                )
-//                Spacer()
-//            }
         }
         .frame(
             maxHeight: .infinity,
@@ -209,13 +168,47 @@ struct PresentationOverviewView: View {
 
 struct PresentationPrepareView: View {
     let title: String;
+    let presentationParts: [PresentationPart];
     
     @Binding var viewType: PresentationViewType
-
+    
+    // Animation page transitioning states
+    @State private var page = 0;
+    @State private var nPage = 0;
+    @State private var isPageTransitioning: Bool = false;
+    @State private var pageTransitionState: Double = 1;
+    
+    @State private var expandHints = false
+    
+    func transitionPage(newPage: Int) {
+        if (isPageTransitioning) {
+            return
+        }
+        
+        nPage = newPage
+        isPageTransitioning = true
+        withAnimation(.easeOut(duration: 0.15)) {
+            pageTransitionState = 0
+        } completion: {
+            page = newPage
+            withAnimation(.easeOut(duration: 0.15)) {
+                pageTransitionState = 1
+            } completion: {
+                isPageTransitioning = false
+            }
+        }
+    }
+    
     var body: some View {
         let safeAreaInsets = getSafeAreaInset()
-        let pimgHeight = 260.0
+        let pimgHeight = 220.0
         
+        let presentationPart = presentationParts[page]
+        
+        let lastPage = (presentationParts.count - 1)
+        let isFirstPage = nPage <= 0
+        let isLastPage = nPage >= lastPage
+
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
                 Text(title)
@@ -251,12 +244,13 @@ struct PresentationPrepareView: View {
                     }
                     
                     ZStack {
-                        Image("pimg_full_playground_observations")
+                        Image(presentationPart.img)
                             .resizable()
                             .scaledToFit()
                             .frame(
-                                maxHeight: pimgHeight * 2/3
+                                maxHeight: pimgHeight * 3/4
                             )
+                            .scaleEffect(pageTransitionState)
                     }
                 }
                 .frame(
@@ -265,18 +259,14 @@ struct PresentationPrepareView: View {
                 
                 VStack() {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Suggested Talking Points")
+                        Text("Describe the scene")
                             .frame(
                                 alignment: .leading
                             )
                             .font(.headline)
                             .foregroundStyle(AppColors.Gray400.color)
-                        Text("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor ")
-                            .frame(
-                                alignment: .leading
-                            )
-                            .font(.body)
-                            .foregroundStyle(AppColors.Gray50.color)
+                        TokenizedTextView(tokens: presentationPart.content)
+                            .opacity(pageTransitionState)
                     }
                     .frame(
                         maxWidth: .infinity,
@@ -292,9 +282,44 @@ struct PresentationPrepareView: View {
                 }
                 .padding(.horizontal, 24)
 
+                if (presentationPart.hint != nil) {
+                    let hint = presentationPart.hint!
+                    VStack() {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Hints")
+                                .frame(
+                                    alignment: .leading
+                                )
+                                .font(.headline)
+                                .foregroundStyle(AppColors.Gray400.color)
+                            DisclosureGroup("Toggle Hints") {
+                                TokenizedTextView(tokens: hint)
+                                    .opacity(pageTransitionState)
+                            }
+                            .foregroundStyle(AppColors.Primary500.color)
+                        }
+                        .frame(
+                            maxWidth: .infinity,
+                            alignment: .topLeading
+                        )
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 12)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(AppColors.Gray900.color)
+                                .stroke(AppColors.Gray700.color, lineWidth: 1)
+                        )
+                    }
+                    .padding(.horizontal, 24)
+                    Text("Stuck? Hints give you ideas on what you can elaborate on. They are not always given so don't rely on hints!")
+                        .font(.caption)
+                        .foregroundStyle(AppColors.Gray500.color)
+                        .padding(.horizontal, 24)
+                }
             }
             .safeAreaPadding(safeAreaInsets)
-            .padding(.vertical, 24)
+            .padding(.top, 24)
+            .padding(.bottom, 120)
         }
         .frame(
             maxWidth: .infinity,
@@ -306,6 +331,7 @@ struct PresentationPrepareView: View {
                 Spacer()
                 HStack {
                     Button(action: {
+                        transitionPage(newPage: page - 1)
                         HapticsImpactLight.impactOccurred()
                     }) {
                         HStack {
@@ -317,11 +343,14 @@ struct PresentationPrepareView: View {
                         .padding(.horizontal, 8)
                         .padding(.vertical, 12)
                     }
+                    .opacity(isFirstPage ? 0.3 : 1)
+                    .disabled(isFirstPage || isPageTransitioning)
                     
-                    Text("99")
+                    Text("\(page + 1)")
                         .foregroundColor(AppColors.Gray400.color)
 
                     Button(action: {
+                        transitionPage(newPage: page + 1)
                         HapticsImpactLight.impactOccurred()
                     }) {
                         HStack {
@@ -333,40 +362,44 @@ struct PresentationPrepareView: View {
                         .padding(.horizontal, 8)
                         .padding(.vertical, 12)
                     }
-                    
+                    .opacity(isLastPage ? 0.3 : 1)
+                    .disabled(isLastPage || isPageTransitioning)
+
                     Button(action: {
                         viewType = .Present
                         HapticsImpactLight.impactOccurred()
                     }) {
-                        HStack {
-                            Text("Start")
-                                .font(.body)
+                        if (page >= lastPage) {
+                            HStack {
+                                Text("Start")
+                                    .font(.body)
+                            }
+                            .fontWeight(.black)
+                            .foregroundColor(AppColors.Gray50.color)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .fill(AppColors.Primary600.color)
+                                    .stroke(AppColors.Primary500.color, lineWidth: 1)
+                            )
+                            .opacity(
+                                nPage <= presentationParts.count ? pageTransitionState : 1
+                            )
+                        } else {
+                            HStack {
+                                Text("Start")
+                                    .font(.body)
+                            }
+                            .fontWeight(.black)
+                            .foregroundColor(AppColors.Primary500.color)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .opacity(
+                                nPage >= presentationParts.count ? pageTransitionState : 1
+                            )
                         }
-                        .fontWeight(.black)
-                        .foregroundColor(AppColors.Gray50.color)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .background(
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(AppColors.Primary600.color)
-                                .stroke(AppColors.Primary500.color, lineWidth: 1)
-                        )
                     }
-
-//                    Button(action: {
-//                        viewType = .Present
-//                        HapticsImpactLight.impactOccurred()
-//                    }) {
-//                        HStack {
-//                            Text("Start")
-//                                .font(.body)
-//                        }
-//                        .fontWeight(.black)
-//                        .foregroundColor(AppColors.Primary500.color)
-//                        .padding(.leading, 12)
-//                        .padding(.trailing, 16)
-//                        .padding(.vertical, 16)
-//                    }
                 }
                 .frame(
                     alignment: .center
@@ -405,7 +438,7 @@ struct PresentationView: View {
                 PresentationOverviewView(title: title, context: AppPresentations.PlaygroundObservationsPresentation.context, viewType: $viewType)
             }
             else if (viewType == .Prepare) {
-                PresentationPrepareView(title: title, viewType: $viewType)
+                PresentationPrepareView(title: title, presentationParts: AppPresentations.PlaygroundObservationsPresentation.parts, viewType: $viewType)
             }
 
             VStack(alignment: .leading) {
