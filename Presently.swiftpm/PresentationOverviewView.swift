@@ -93,11 +93,12 @@ struct PresentationOverviewRegularView: View {
                     }
                     
                     ZStack {
-                        Image("pimg_full_playground_observations")
+                        Image("playground")
+//                        Image("pimg_full_playground_observations")
                             .resizable()
                             .scaledToFit()
                             .frame(
-                                maxHeight: pimgHeight * 3/4
+                                maxHeight: pimgHeight
                             )
                             .scaleEffect(appearTransitionState)
                     }
