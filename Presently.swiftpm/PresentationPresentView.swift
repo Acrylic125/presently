@@ -10,9 +10,50 @@ struct PresentationPresentView: View {
     @State private var page = 0;
     @State private var nPage = 0;
     @State private var isPageTransitioning: Bool = false;
-    @State private var pageTransitionState: Double = 1;
-    
+    @State private var appearTransitionWorkItem: DispatchWorkItem?
+    @State private var appearTransitionState: Double = 0;
+    @State private var appearVXTransitionState: Double = 0;
+
     @State private var expandHints = false
+    
+    func animateIn() {
+        if (appearTransitionWorkItem != nil) {
+            appearTransitionWorkItem!.cancel()
+        }
+        
+        isPageTransitioning = true
+        appearTransitionState = 0
+        appearVXTransitionState = 0
+        appearTransitionWorkItem = DispatchWorkItem {
+            withAnimation(.easeIn(duration: 0.3)) {
+                appearTransitionState = 1
+                isPageTransitioning = false
+            }
+            withAnimation(.easeIn(duration: 1.0)) {
+                appearVXTransitionState = 1
+            }
+        }
+        DispatchQueue.main.async(execute: appearTransitionWorkItem!)
+    }
+    
+    func goTo(viewType: PresentationViewType) {
+        if (appearTransitionWorkItem != nil) {
+            appearTransitionWorkItem!.cancel()
+        }
+        
+        isPageTransitioning = true
+        appearTransitionState = 1
+        appearVXTransitionState = 1
+        appearTransitionWorkItem = DispatchWorkItem {
+            withAnimation(.easeOut(duration: 0.3)) {
+                appearTransitionState = 0
+                appearVXTransitionState = 0
+                isPageTransitioning = false
+                self.viewType = viewType
+            }
+        }
+        DispatchQueue.main.async(execute: appearTransitionWorkItem!)
+    }
     
     func transitionPage(newPage: Int) {
         if (isPageTransitioning) {
@@ -21,18 +62,21 @@ struct PresentationPresentView: View {
         
         nPage = newPage
         isPageTransitioning = true
-        withAnimation(.easeOut(duration: 0.15)) {
-            pageTransitionState = 0
-        } completion: {
-            page = newPage
+        appearTransitionWorkItem = DispatchWorkItem {
             withAnimation(.easeOut(duration: 0.15)) {
-                pageTransitionState = 1
+                appearTransitionState = 0
             } completion: {
-                isPageTransitioning = false
+                page = newPage
+                withAnimation(.easeOut(duration: 0.15)) {
+                    appearTransitionState = 1
+                } completion: {
+                    isPageTransitioning = false
+                }
             }
         }
+        DispatchQueue.main.async(execute: appearTransitionWorkItem!)
     }
-    
+
     var body: some View {
         let safeAreaInsets = getSafeAreaInset()
         let pimgHeight = 220.0
@@ -42,6 +86,49 @@ struct PresentationPresentView: View {
         let lastPage = (presentationParts.count - 1)
         let isFirstPage = nPage <= 0
         let isLastPage = nPage >= lastPage
+        
+        // Visual Effects
+        VStack {
+            Rectangle()
+                .fill(
+                    LinearGradient(
+                        gradient: Gradient(
+                            stops: [
+                                .init(color: AppColors.Primary500.color.opacity(0.25), location: 0),
+                                .init(color: AppColors.Primary300.color.opacity(0.0), location: 1)
+                            ]
+                        ),
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .frame(
+                    maxWidth: .infinity,
+                    maxHeight: .infinity
+                )
+            Rectangle()
+                .fill(
+                    LinearGradient(
+                        gradient: Gradient(
+                            stops: [
+                                .init(color: AppColors.Primary300.color.opacity(0.0), location: 0),
+                                .init(color: AppColors.Primary500.color.opacity(0.25), location: 1)
+                            ]
+                        ),
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .frame(
+                    maxWidth: .infinity,
+                    maxHeight: .infinity
+                )
+        }
+        .frame(
+            maxHeight: .infinity,
+            alignment: .bottomTrailing
+        )
+        .opacity(appearVXTransitionState)
 
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
@@ -69,11 +156,11 @@ struct PresentationPresentView: View {
                                     endPoint: .bottom
                                 )
                             )
-                            .scaleEffect(x: 1, y: 0.5)
+                            .scaleEffect(x: 1, y: 0.75)
                             .frame(
                                 height: pimgHeight
                             )
-                            .offset(y: pimgHeight * 0.25)
+                            .offset(y: pimgHeight * 0.5)
                             .clipped()
                     }
                     
@@ -84,7 +171,7 @@ struct PresentationPresentView: View {
                             .frame(
                                 maxHeight: pimgHeight * 3/4
                             )
-                            .scaleEffect(pageTransitionState)
+                            .scaleEffect(appearTransitionState)
                     }
                 }
                 .frame(
@@ -100,7 +187,7 @@ struct PresentationPresentView: View {
                             .font(.headline)
                             .foregroundStyle(AppColors.Gray400.color)
                         TokenizedTextView(tokens: presentationPart.content)
-                            .opacity(pageTransitionState)
+                            .opacity(appearTransitionState)
                     }
                     .frame(
                         maxWidth: .infinity,
@@ -128,7 +215,7 @@ struct PresentationPresentView: View {
                                 .foregroundStyle(AppColors.Gray400.color)
                             DisclosureGroup("Toggle Hints") {
                                 TokenizedTextView(tokens: hint)
-                                    .opacity(pageTransitionState)
+                                    .opacity(appearTransitionState)
                             }
                             .foregroundStyle(AppColors.Primary500.color)
                         }
@@ -160,6 +247,7 @@ struct PresentationPresentView: View {
             maxHeight: .infinity
         )
         
+        // Bottom Toolbar
         VStack {
             HStack {
                 Spacer()
@@ -205,7 +293,7 @@ struct PresentationPresentView: View {
                     }) {
                         if (page >= lastPage) {
                             HStack {
-                                Text("Start")
+                                Text("Done")
                                     .font(.body)
                             }
                             .fontWeight(.black)
@@ -218,11 +306,11 @@ struct PresentationPresentView: View {
                                     .stroke(AppColors.Primary500.color, lineWidth: 1)
                             )
                             .opacity(
-                                nPage <= presentationParts.count ? pageTransitionState : 1
+                                nPage <= presentationParts.count ? appearTransitionState : 1
                             )
                         } else {
                             HStack {
-                                Text("Start")
+                                Text("Done")
                                     .font(.body)
                             }
                             .fontWeight(.black)
@@ -230,7 +318,7 @@ struct PresentationPresentView: View {
                             .padding(.horizontal, 12)
                             .padding(.vertical, 8)
                             .opacity(
-                                nPage >= presentationParts.count ? pageTransitionState : 1
+                                nPage >= presentationParts.count ? appearTransitionState : 1
                             )
                         }
                     }
@@ -255,6 +343,9 @@ struct PresentationPresentView: View {
         .safeAreaPadding(safeAreaInsets)
         .padding(.horizontal, 12)
         .padding(.bottom, 48)
+        // Will attach to toolbar but can be placed anywhere.
+        .onAppear() {
+            animateIn()
+        }
     }
 }
-

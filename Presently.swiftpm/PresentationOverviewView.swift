@@ -6,6 +6,38 @@ struct PresentationOverviewView: View {
     
     @Binding var viewType: PresentationViewType
 
+    @State private var appearTransitionWorkItem: DispatchWorkItem?
+    @State private var appearTransitionState: Double = 0
+    
+    func animateIn() {
+        if (appearTransitionWorkItem != nil) {
+            appearTransitionWorkItem!.cancel()
+        }
+        
+        appearTransitionState = 0
+        appearTransitionWorkItem = DispatchWorkItem {
+            withAnimation(.easeIn(duration: 0.3)) {
+                appearTransitionState = 1
+            }
+        }
+        DispatchQueue.main.async(execute: appearTransitionWorkItem!)
+    }
+    
+    func goTo(viewType: PresentationViewType) {
+        if (appearTransitionWorkItem != nil) {
+            appearTransitionWorkItem!.cancel()
+        }
+        
+        appearTransitionState = 1
+        appearTransitionWorkItem = DispatchWorkItem {
+            withAnimation(.easeOut(duration: 0.3)) {
+                appearTransitionState = 0
+                self.viewType = viewType
+            }
+        }
+        DispatchQueue.main.async(execute: appearTransitionWorkItem!)
+    }
+    
     var body: some View {
         let safeAreaInsets = getSafeAreaInset()
         let pimgHeight = 220.0
@@ -43,7 +75,7 @@ struct PresentationOverviewView: View {
                             .offset(y: pimgHeight * 0.25)
                             .clipped()
                     }
-                    
+
                     ZStack {
                         Image("pimg_full_playground_observations")
                             .resizable()
@@ -51,6 +83,7 @@ struct PresentationOverviewView: View {
                             .frame(
                                 maxHeight: pimgHeight * 3/4
                             )
+                            .scaleEffect(appearTransitionState)
                     }
                 }
                 .frame(
@@ -66,6 +99,7 @@ struct PresentationOverviewView: View {
                             .font(.headline)
                             .foregroundStyle(AppColors.Gray400.color)
                         TokenizedTextView(tokens: context)
+                            .opacity(appearTransitionState)
                     }
                     .frame(
                         maxWidth: .infinity,
@@ -91,12 +125,13 @@ struct PresentationOverviewView: View {
             maxHeight: .infinity
         )
         
+        // Toolbar
         VStack {
             HStack {
                 Spacer()
                 HStack(spacing: 12) {
                     Button(action: {
-                        viewType = .Prepare
+                        goTo(viewType: .Prepare)
                         HapticsImpactLight.impactOccurred()
                     }) {
                         HStack {
@@ -109,7 +144,7 @@ struct PresentationOverviewView: View {
                         .padding(.horizontal, 8)
                     }
                     Button(action: {
-                        viewType = .Present
+                        goTo(viewType: .Present)
                         HapticsImpactLight.impactOccurred()
                     }) {
                         HStack {
@@ -139,6 +174,7 @@ struct PresentationOverviewView: View {
                 )
                 Spacer()
             }
+//            .scaleEffect(appearTransitionState)
         }
         .frame(
             maxHeight: .infinity,
@@ -147,5 +183,9 @@ struct PresentationOverviewView: View {
         .safeAreaPadding(safeAreaInsets)
         .padding(.horizontal, 24)
         .padding(.bottom, 48)
+        // Will attach to toolbar but can be placed anywhere.
+        .onAppear() {
+            animateIn()
+        }
     }
 }
