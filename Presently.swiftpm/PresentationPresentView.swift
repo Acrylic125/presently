@@ -27,6 +27,7 @@ struct PresentationPresentView: View {
         appearTransitionWorkItem = DispatchWorkItem {
             withAnimation(.easeIn(duration: 0.3)) {
                 appearTransitionState = 1
+            } completion: {
                 isPageTransitioning = false
             }
             withAnimation(.easeIn(duration: 1.0)) {
@@ -48,6 +49,7 @@ struct PresentationPresentView: View {
             withAnimation(.easeOut(duration: 0.3)) {
                 appearTransitionState = 0
                 appearVXTransitionState = 0
+            } completion: {
                 isPageTransitioning = false
                 self.viewType = viewType
             }
@@ -343,6 +345,10 @@ struct PresentationPresentView: View {
         .safeAreaPadding(safeAreaInsets)
         .padding(.horizontal, 12)
         .padding(.bottom, 48)
+        
+        PresentationViewCloseButton(onClose: {
+            goTo(viewType: .Overview)
+        })
         // Will attach to toolbar but can be placed anywhere.
         .onAppear() {
             animateIn()

@@ -12,6 +12,47 @@ struct TokenizedTextView: View {
     }
 }
 
+struct PresentationViewCloseButton: View {
+    let onClose: () -> Void
+    
+    var body: some View {
+        let safeAreaInsets = getSafeAreaInset()
+        
+        VStack(alignment: .leading) {
+            HStack {
+                Spacer()
+                Button(action: {
+                    onClose()
+                    HapticsImpactLight.impactOccurred()
+                }) {
+                    HStack {
+                        Image(systemName: "multiply")
+                    }
+                    .foregroundColor(AppColors.Gray50.color)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 16)
+                    .background(
+                        Circle()
+                            .fill(AppColors.Gray700.color.opacity(0.5))
+                            .stroke(AppColors.Gray700.color, lineWidth: 1)
+                    )
+                }
+            }
+            .frame(
+                maxHeight: .infinity,
+                alignment: .topTrailing
+            )
+        }
+        .frame(
+            maxHeight: .infinity,
+            alignment: .topTrailing
+        )
+        .safeAreaPadding(safeAreaInsets)
+        .padding(.top, 24)
+        .padding(.horizontal, 24)
+    }
+}
+
 enum PresentationViewType {
     case Overview, Prepare, Present
 }
@@ -23,8 +64,6 @@ struct PresentationView: View {
     @State var viewType: PresentationViewType = .Overview
     
     var body: some View {
-        let safeAreaInsets = getSafeAreaInset()
-
         ZStack(alignment: .topLeading) {
             if (viewType == .Overview) {
                 PresentationOverviewView(title: title, context: AppPresentations.PlaygroundObservationsPresentation.context, viewType: $viewType)
@@ -33,42 +72,6 @@ struct PresentationView: View {
             } else {
                 PresentationPresentView(title: title, presentationParts: AppPresentations.PlaygroundObservationsPresentation.parts, viewType: $viewType)
             }
-
-            VStack(alignment: .leading) {
-                HStack {
-                    Spacer()
-                    Button(action: {
-                        if (viewType == .Prepare || viewType == .Present) {
-                            viewType = .Overview
-                        }
-                        
-                        HapticsImpactLight.impactOccurred()
-                    }) {
-                        HStack {
-                            Image(systemName: "multiply")
-                        }
-                        .foregroundColor(AppColors.Gray50.color)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 16)
-                        .background(
-                            Circle()
-                                .fill(AppColors.Gray700.color.opacity(0.5))
-                                .stroke(AppColors.Gray700.color, lineWidth: 1)
-                        )
-                    }
-                }
-                .frame(
-                    maxHeight: .infinity,
-                    alignment: .topTrailing
-                )
-            }
-            .frame(
-                maxHeight: .infinity,
-                alignment: .topTrailing
-            )
-            .safeAreaPadding(safeAreaInsets)
-            .padding(.top, 12)
-            .padding(.horizontal, 12)
         }
         .ignoresSafeArea()
         .navigationBarBackButtonHidden()

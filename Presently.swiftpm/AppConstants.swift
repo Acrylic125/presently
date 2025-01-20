@@ -38,3 +38,15 @@ enum AppColors: String {
     return Color(self.uiColor)
   }
 }
+
+public enum AppFontSize: CGFloat {
+    case xs = 12
+    case sm = 14
+    case md = 16
+    case lg = 18
+    case xl = 20
+    case xl2 = 24
+    case xl3 = 30
+    case xl4 = 36
+    case xl5 = 48
+}

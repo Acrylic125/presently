@@ -64,8 +64,6 @@ class SessionManager: ObservableObject {
     var rootId: UUID = UUID()
 }
 
-
-
 struct ContentView: View {
     var body: some View {
         VStack {
