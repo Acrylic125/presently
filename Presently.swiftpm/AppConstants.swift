@@ -50,3 +50,20 @@ public enum AppFontSize: CGFloat {
     case xl4 = 36
     case xl5 = 48
 }
+
+// https://tailwindcss.com/docs/border-radius
+public enum AppRoundedCorner: CGFloat {
+    case sm = 4
+    case md = 6
+    case lg = 8
+    case xl = 12
+    case xl2 = 16
+    case xl3 = 20
+    case xl4 = 24
+    case xl5 = 28
+}
+
+public enum AppBorderSize: CGFloat {
+    case sm = 1
+    case md = 2
+}

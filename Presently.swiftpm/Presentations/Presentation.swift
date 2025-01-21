@@ -75,7 +75,7 @@ public struct AppPresentations {
                              img: "pimg_full_playground_observations"
                             ),
         ],
-        context: tokenizeStr("You are a <h>town council representative</h> working to improve facilities in your\n \nYou visited a local playground to observe how people <h>use the space</h> and <h>identify opportunities</h> for improvement.\n \nYou will present your <h>findings and recommendations</h>."),
+        context: tokenizeStr("You are a <h>town council representative</h> working to improve facilities in your neighbourhood.\n \nYou visited a local playground to observe how people <h>use the space</h> and <h>identify opportunities</h> for improvement.\n \nYou will present your <h>findings and recommendations</h>."),
         img: "pimg_full_playground_observations"
     )
 
