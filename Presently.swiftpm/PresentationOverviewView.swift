@@ -2,92 +2,23 @@ import SwiftUI
 
 @Observable
 final class PresentationOverviewViewModel {
-    @Binding var viewType: PresentationViewType
-    
     var appearTransitionWorkItem: DispatchWorkItem? = nil
     var appearTransitionState: Double = 0
-    
-    init(viewType: Binding<PresentationViewType>) {
-        self._viewType = viewType
-    }
-    
-    func animateIn() {
-        if (appearTransitionWorkItem != nil) {
-            appearTransitionWorkItem!.cancel()
-        }
-        
-        appearTransitionState = 0
-        appearTransitionWorkItem = DispatchWorkItem {
-            withAnimation(.easeIn(duration: 0.3)) {
-                self.appearTransitionState = 1
-            }
-        }
-        DispatchQueue.main.async(execute: appearTransitionWorkItem!)
-    }
-    
-    func goTo(viewType: PresentationViewType) {
-        if (appearTransitionWorkItem != nil) {
-            appearTransitionWorkItem!.cancel()
-        }
-        
-        appearTransitionState = 1
-        appearTransitionWorkItem = DispatchWorkItem {
-            withAnimation(.easeOut(duration: 0.3)) {
-                self.appearTransitionState = 0
-            } completion: {
-                print("Completed")
-                self.viewType = viewType
-            }
-        }
-        DispatchQueue.main.async(execute: appearTransitionWorkItem!)
-    }
 }
 
 struct PresentationOverviewRegularView: View {
     let title: String;
     let context: [StringToken];
-    
-    @Binding var viewType: PresentationViewType
-    
-    @State private var appearTransitionWorkItem: DispatchWorkItem?
-    @State private var appearTransitionState: Double = 0
+    @Binding var viewModel: PresentationOverviewViewModel
 
-    func animateIn() {
-        if (appearTransitionWorkItem != nil) {
-            appearTransitionWorkItem!.cancel()
-        }
-        
-        appearTransitionState = 0
-        appearTransitionWorkItem = DispatchWorkItem {
-            withAnimation(.easeIn(duration: 0.3)) {
-                appearTransitionState = 1
-            }
-        }
-        DispatchQueue.main.async(execute: appearTransitionWorkItem!)
-    }
-    
-    func goTo(viewType: PresentationViewType) {
-        if (appearTransitionWorkItem != nil) {
-            appearTransitionWorkItem!.cancel()
-        }
-        
-        appearTransitionState = 1
-        appearTransitionWorkItem = DispatchWorkItem {
-            withAnimation(.easeOut(duration: 0.3)) {
-                appearTransitionState = 0
-            } completion: {
-                print("Completed")
-                self.viewType = viewType
-            }
-        }
-        DispatchQueue.main.async(execute: appearTransitionWorkItem!)
-    }
+    var goTo: ((_ viewType: PresentationViewType) -> Void)?
+    var onClose: (() -> Void)?
     
     var body: some View {
         let safeAreaInsets = getSafeAreaInset()
         
         PresentationRegularLayoutView(
-            imageAppearAnimationState: $appearTransitionState
+            imageAppearAnimationState: $viewModel.appearTransitionState
         ) {
             VStack(alignment: .leading, spacing: 12) {
                 Text("Context")
@@ -98,7 +29,7 @@ struct PresentationOverviewRegularView: View {
                     .foregroundStyle(AppColors.Gray400.color)
                 TokenizedTextView(tokens: context)
                     .font(.system(size: AppFontSize.xl2.rawValue, weight: .medium))
-                    .opacity(appearTransitionState)
+                    .opacity(viewModel.appearTransitionState)
             }
             .frame(
                 maxWidth: .infinity,
@@ -115,10 +46,6 @@ struct PresentationOverviewRegularView: View {
         }
         .title(title)
         .img("playground")
-        // Will attach to toolbar but can be placed anywhere.
-        .onAppear() {
-            animateIn()
-        }
 
         // Toolbar
         VStack {
@@ -126,7 +53,10 @@ struct PresentationOverviewRegularView: View {
                 Spacer()
                 HStack(spacing: 8) {
                     AppButton(action: {
-                        goTo(viewType: .Prepare)
+                        guard let goTo else {
+                            return
+                        }
+                        goTo(.Prepare)
                         HapticsImpactLight.impactOccurred()
                     }) {
                         Text("Prepare")
@@ -135,7 +65,10 @@ struct PresentationOverviewRegularView: View {
                     .size(.large)
 
                     AppButton(action: {
-                        goTo(viewType: .Present)
+                        guard let goTo else {
+                            return
+                        }
+                        goTo(.Present)
                         HapticsImpactLight.impactOccurred()
                     }) {
                         Text("Start")
@@ -164,57 +97,28 @@ struct PresentationOverviewRegularView: View {
         .padding(.bottom, 48)
         
         PresentationViewCloseButton(onClose: {
-            if (appearTransitionWorkItem != nil) {
-                appearTransitionWorkItem!.cancel()
+            guard let onClose else {
+                return
             }
+            onClose()
         })
     }
+    
 }
 
 struct PresentationOverviewCompactView: View {
     let title: String;
     let context: [StringToken];
-    
-    @Binding var viewType: PresentationViewType
-    
-    @State private var appearTransitionWorkItem: DispatchWorkItem?
-    @State private var appearTransitionState: Double = 0
-    
-    func animateIn() {
-        if (appearTransitionWorkItem != nil) {
-            appearTransitionWorkItem!.cancel()
-        }
-        
-        appearTransitionState = 0
-        appearTransitionWorkItem = DispatchWorkItem {
-            withAnimation(.easeIn(duration: 0.3)) {
-                appearTransitionState = 1
-            }
-        }
-        DispatchQueue.main.async(execute: appearTransitionWorkItem!)
-    }
-    
-    func goTo(viewType: PresentationViewType) {
-        if (appearTransitionWorkItem != nil) {
-            appearTransitionWorkItem!.cancel()
-        }
-        
-        appearTransitionState = 1
-        appearTransitionWorkItem = DispatchWorkItem {
-            withAnimation(.easeOut(duration: 0.3)) {
-                appearTransitionState = 0
-            } completion: {
-                self.viewType = viewType
-            }
-        }
-        DispatchQueue.main.async(execute: appearTransitionWorkItem!)
-    }
+    @Binding var viewModel: PresentationOverviewViewModel
+
+    var goTo: ((_ viewType: PresentationViewType) -> Void)?
+    var onClose: (() -> Void)?
 
     var body: some View {
         let safeAreaInsets = getSafeAreaInset()
         
         PresentationCompactLayoutView(
-            imageAppearAnimationState: $appearTransitionState
+            imageAppearAnimationState: $viewModel.appearTransitionState
         ) {
             VStack(alignment: .leading, spacing: 8) {
                 Text("Context")
@@ -225,7 +129,7 @@ struct PresentationOverviewCompactView: View {
                     .foregroundStyle(AppColors.Gray400.color)
                 TokenizedTextView(tokens: context)
                     .font(.system(size: AppFontSize.lg.rawValue, weight: .medium))
-                    .opacity(appearTransitionState)
+                    .opacity(viewModel.appearTransitionState)
             }
             .frame(
                 maxWidth: .infinity,
@@ -241,10 +145,6 @@ struct PresentationOverviewCompactView: View {
         }
         .title(title)
         .img("playground")
-        // Will attach to toolbar but can be placed anywhere.
-        .onAppear() {
-            animateIn()
-        }
 
         // Toolbar
         VStack {
@@ -252,7 +152,10 @@ struct PresentationOverviewCompactView: View {
                 Spacer()
                 HStack(spacing: 8) {
                     AppButton(action: {
-                        goTo(viewType: .Prepare)
+                        guard let goTo else {
+                            return
+                        }
+                        goTo(.Prepare)
                         HapticsImpactLight.impactOccurred()
                     }) {
                         Text("Prepare")
@@ -260,7 +163,10 @@ struct PresentationOverviewCompactView: View {
                     .variant(.ghost)
 
                     AppButton(action: {
-                        goTo(viewType: .Present)
+                        guard let goTo else {
+                            return
+                        }
+                        goTo(.Present)
                         HapticsImpactLight.impactOccurred()
                     }) {
                         Text("Start")
@@ -288,35 +194,81 @@ struct PresentationOverviewCompactView: View {
         .padding(.bottom, 48)
         
         PresentationViewCloseButton(onClose: {
-            if (appearTransitionWorkItem != nil) {
-                appearTransitionWorkItem!.cancel()
+            guard let onClose else {
+                return
             }
+            onClose()
         })
     }
 }
-
 
 struct PresentationOverviewView: View {
     let title: String;
     let context: [StringToken];
     
     @Binding var viewType: PresentationViewType
-
+    @State var viewModel = PresentationOverviewViewModel()
+    
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
     
     var body: some View {
         if (horizontalSizeClass == .compact) {
-            PresentationOverviewCompactView(
+             PresentationOverviewCompactView(
                 title: title,
                 context: context,
-                viewType: $viewType
-            )
+                viewModel: $viewModel,
+                goTo: self.goTo,
+                onClose: self.onClose
+            ).onAppear() {
+                animateIn()
+            }
         } else {
-            PresentationOverviewRegularView(
+             PresentationOverviewRegularView(
                 title: title,
                 context: context,
-                viewType: $viewType
-            )
+                viewModel: $viewModel,
+                goTo: self.goTo,
+                onClose: self.onClose
+            ).onAppear() {
+                animateIn()
+            }
         }
     }
+    
+    func onClose() {
+        if (viewModel.appearTransitionWorkItem != nil) {
+            viewModel.appearTransitionWorkItem!.cancel()
+        }
+    }
+    
+    func animateIn() {
+        if (viewModel.appearTransitionWorkItem != nil) {
+            viewModel.appearTransitionWorkItem!.cancel()
+        }
+        
+        viewModel.appearTransitionState = 0
+        viewModel.appearTransitionWorkItem = DispatchWorkItem {
+            withAnimation(.easeIn(duration: 0.3)) {
+                self.viewModel.appearTransitionState = 1
+            }
+        }
+        DispatchQueue.main.async(execute: viewModel.appearTransitionWorkItem!)
+    }
+    
+    func goTo(viewType: PresentationViewType) {
+        if (viewModel.appearTransitionWorkItem != nil) {
+            viewModel.appearTransitionWorkItem!.cancel()
+        }
+        
+        viewModel.appearTransitionState = 1
+        viewModel.appearTransitionWorkItem = DispatchWorkItem {
+            withAnimation(.easeOut(duration: 0.3)) {
+                self.viewModel.appearTransitionState = 0
+            } completion: {
+                self.viewType = viewType
+            }
+        }
+        DispatchQueue.main.async(execute: viewModel.appearTransitionWorkItem!)
+    }
+
 }

@@ -16,7 +16,10 @@ public struct AppButton<Content: View>: View {
     
     var size: AppButtonSize = .small
     var variant: AppButtonVariant = .base
-
+    
+    var horzPadding: CGFloat?
+    var vertPadding: CGFloat?
+    
     init(action: @escaping () -> Void, @ViewBuilder content: () -> Content) {
         self.action = action
         self.content = content()
@@ -24,8 +27,8 @@ public struct AppButton<Content: View>: View {
 
     public var body: some View {
         Button(action: action) {
-            let horzPadding: CGFloat = size == .large ? 20 : 16;
-            let vertPadding: CGFloat = size == .large ? 16 : 12;
+            let horzPadding: CGFloat = (self.horzPadding) ?? (size == .large ? 20 : 16);
+            let vertPadding: CGFloat = (self.vertPadding) ?? (size == .large ? 16 : 12);
             let borderRadius: CGFloat = size == .large ? 16 : 8;
 
             if (variant == .ghost) {
@@ -53,16 +56,28 @@ public struct AppButton<Content: View>: View {
         }
     }
     
-    public func size(_ size: AppButtonSize) -> AppButton {
+    public func size(_ v: AppButtonSize) -> AppButton {
          var button = self
-         button.size = size
+         button.size = v
          return button
      }
      
-     public func variant(_ variant: AppButtonVariant) -> AppButton {
+     public func variant(_ v: AppButtonVariant) -> AppButton {
          var button = self
-         button.variant = variant
+         button.variant = v
          return button
      }
     
+    public func paddingHorz(_ v: CGFloat) -> AppButton {
+        var button = self
+        button.horzPadding = v
+        return button
+    }
+    
+    public func paddingVert(_ v: CGFloat) -> AppButton {
+        var button = self
+        button.vertPadding = v
+        return button
+    }
+
 }

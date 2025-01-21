@@ -125,61 +125,6 @@ struct PresentationRegularLayoutView<Content: View>: View {
             maxHeight: .infinity
         )
         
-        // Toolbar
-        VStack {
-            HStack {
-                Spacer()
-                HStack(spacing: 8) {
-                    Button(action: {
-//                        goTo(viewType: .Prepare)
-                        HapticsImpactLight.impactOccurred()
-                    }) {
-                        HStack {
-                            Text("Prepare")
-                                .font(.system(size: AppFontSize.xl.rawValue, weight: .medium))
-                        }
-                        .foregroundColor(AppColors.Primary500.color)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 16)
-                    }
-                    Button(action: {
-//                        goTo(viewType: .Present)
-                        HapticsImpactLight.impactOccurred()
-                    }) {
-                        HStack {
-                            Text("Start")
-                                .font(.system(size: AppFontSize.xl.rawValue, weight: .medium))
-                        }
-                        .foregroundColor(AppColors.Gray50.color)
-                        .padding(.horizontal, 28)
-                        .padding(.vertical, 16)
-                        .background(
-                            RoundedRectangle(cornerRadius: 16)
-                                .fill(AppColors.Primary600.color)
-                                .stroke(AppColors.Primary500.color, lineWidth: 1)
-                        )
-                    }
-                }
-                .frame(
-                    alignment: .center
-                )
-                .padding(.horizontal, 8)
-                .padding(.vertical, 8)
-                .background(
-                    RoundedRectangle(cornerRadius: 20)
-                        .fill(AppColors.Gray900.color.opacity(0.75))
-                        .stroke(AppColors.Gray700.color, lineWidth: 1)
-                )
-                Spacer()
-            }
-        }
-        .frame(
-            maxHeight: .infinity,
-            alignment: .bottomTrailing
-        )
-        .safeAreaPadding(safeAreaInsets)
-        .padding(.horizontal, 24)
-        .padding(.bottom, 48)
         
 //        PresentationViewCloseButton(onClose: {
 //            if (appearTransitionWorkItem != nil) {

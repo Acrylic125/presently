@@ -8,6 +8,7 @@ struct TokenizedTextView: View {
             partialResult + Text(token.text)
                 .foregroundColor(token.type == .highlight ? AppColors.Primary500.color : AppColors.Gray50.color)
         }
+        .fixedSize(horizontal: false, vertical: true)
         .frame(maxHeight: .infinity)
     }
 }
@@ -65,13 +66,27 @@ struct PresentationView: View {
     
     var body: some View {
         ZStack(alignment: .topLeading) {
+//            PresentationPrepareView(
+//                title: title,
+//                presentationParts: AppPresentations.PlaygroundObservationsPresentation.parts,
+//                viewType: $viewType
+//            )
             if (viewType == .Overview) {
-                PresentationOverviewView(title: title, context: AppPresentations.PlaygroundObservationsPresentation.context, viewType: $viewType)
+                PresentationOverviewView(
+                    title: title,
+                    context: AppPresentations.PlaygroundObservationsPresentation.context,
+                    viewType: $viewType
+                )
             } else if (viewType == .Prepare) {
-                PresentationPrepareView(title: title, presentationParts: AppPresentations.PlaygroundObservationsPresentation.parts, viewType: $viewType)
-            } else {
-                PresentationPresentView(title: title, presentationParts: AppPresentations.PlaygroundObservationsPresentation.parts, viewType: $viewType)
+                PresentationPrepareView(
+                    title: title,
+                    presentationParts: AppPresentations.PlaygroundObservationsPresentation.parts,
+                    viewType: $viewType
+                )
             }
+//            else {
+////                PresentationPresentView(title: title, presentationParts: AppPresentations.PlaygroundObservationsPresentation.parts, viewType: $viewType)
+//            }
         }
         .ignoresSafeArea()
         .navigationBarBackButtonHidden()
