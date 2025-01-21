@@ -1,5 +1,14 @@
 import SwiftUI
 
+struct ViewSizeKey: PreferenceKey {
+    static var defaultValue: CGSize = .zero
+    
+    static func reduce(value: inout CGSize, nextValue: () -> CGSize) {
+        // Hacky fix: Stupid annoying issue with listening to container views such as VStack.
+        value = value ?? nextValue()
+    }
+}
+
 struct PresentationRegularLayoutView<Content: View>: View {
     
     @Binding var imageAppearAnimationState: Double
@@ -191,5 +200,98 @@ struct PresentationRegularLayoutView<Content: View>: View {
         return c
     }
 
+}
+
+struct PresentationCompactLayoutView<Content: View>: View {
     
+    @Binding var imageAppearAnimationState: Double
+    
+    let content: Content
+    private var title: String = ""
+    private var img: String = ""
+
+    init(imageAppearAnimationState: Binding<Double>, @ViewBuilder content: () -> Content) {
+        _imageAppearAnimationState = imageAppearAnimationState
+        self.content = content()
+    }
+    
+    var body: some View {
+        let safeAreaInsets = getSafeAreaInset()
+        let pimgHeight = 220.0
+        
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                Text(title)
+                    .frame(
+                        maxWidth: 300,
+                        alignment: .leading
+                    )
+                    .foregroundStyle(AppColors.Gray50.color)
+                    .font(.system(size: AppFontSize.xl3.rawValue, weight: .black))
+                    .padding(.horizontal, 24)
+                ZStack {
+                    ZStack {
+                        Ellipse()
+                            .fill(
+                                LinearGradient(
+                                    gradient: Gradient(
+                                        stops: [
+                                            .init(color: AppColors.Gray700.color.opacity(0.75), location: 0),
+                                            .init(color: AppColors.Gray700.color.opacity(0.0), location: 0.5)
+                                        ]
+                                    ),
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                )
+                            )
+                            .scaleEffect(x: 1, y: 0.5)
+                            .frame(
+                                height: pimgHeight
+                            )
+                            .offset(y: pimgHeight * 0.25)
+                            .clipped()
+                    }
+
+                    ZStack {
+                        Image(img)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(
+                                maxHeight: pimgHeight * 3/4
+                            )
+                            .scaleEffect(imageAppearAnimationState)
+                    }
+                }
+                .frame(
+                    height: pimgHeight
+                )
+                
+                VStack {
+                    content
+                }
+                .padding(.horizontal, 24)
+
+            }
+            .safeAreaPadding(safeAreaInsets)
+            .padding(.top, 24)
+            .padding(.bottom, 120)
+        }
+        .frame(
+            maxWidth: .infinity,
+            maxHeight: .infinity
+        )
+    }
+    
+    public func title(_ v: String) -> PresentationCompactLayoutView {
+        var c = self
+        c.title = v
+        return c
+    }
+    
+    public func img(_ v: String) -> PresentationCompactLayoutView {
+        var c = self
+        c.img = v
+        return c
+    }
+
 }
