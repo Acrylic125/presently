@@ -170,10 +170,13 @@ struct PresentationView: View {
                     presentationParts: AppPresentations.PlaygroundObservationsPresentation.parts,
                     viewType: $viewType
                 )
+            } else {
+                PresentationPresentView(
+                    title: title,
+                    presentationParts: AppPresentations.PlaygroundObservationsPresentation.parts,
+                    viewType: $viewType
+                )
             }
-//            else {
-////                PresentationPresentView(title: title, presentationParts: AppPresentations.PlaygroundObservationsPresentation.parts, viewType: $viewType)
-//            }
         }
         .ignoresSafeArea()
         .navigationBarBackButtonHidden()
