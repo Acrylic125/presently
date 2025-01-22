@@ -112,7 +112,7 @@ struct PresentationPrepareRegularView: View {
                                     HapticsImpactLight.impactOccurred()
                                 }) {
                                     HStack {
-                                        Text("Show Hints")
+                                        Text("Hide Hints")
                                         Image(systemName: "chevron.down")
                                     }
                                 }
@@ -120,7 +120,10 @@ struct PresentationPrepareRegularView: View {
                                 .size(.large)
                                 .paddingHorz(0)
                                 .paddingVert(0)
-                                .opacity(viewModel.hintsExpandTransitionState)
+                                .opacity(
+                                    // Mimic opacity press animation, latter half. 0.1s latter. Transition animation takes 0.3s
+                                    (min(viewModel.hintsExpandTransitionState * 3, 1)) * 0.7 + 0.3
+                                )
                                 .onAppear() {
                                     viewModel.animateExpand()
                                 }
@@ -130,7 +133,7 @@ struct PresentationPrepareRegularView: View {
                                     HapticsImpactLight.impactOccurred()
                                 }) {
                                     HStack {
-                                        Text("Hide Hints")
+                                        Text("Show Hints")
                                         Image(systemName: "chevron.right")
                                     }
                                 }
@@ -138,7 +141,10 @@ struct PresentationPrepareRegularView: View {
                                 .size(.large)
                                 .paddingHorz(0)
                                 .paddingVert(0)
-                                .opacity(viewModel.hintsExpandTransitionState)
+                                .opacity(
+                                    // Mimic opacity press animation, latter half. 0.1s latter. Transition animation takes 0.3s
+                                    (min(viewModel.hintsExpandTransitionState * 3, 1)) * 0.7 + 0.3
+                                )
                                 .onAppear() {
                                     viewModel.animateExpand()
                                 }
@@ -190,7 +196,8 @@ struct PresentationPrepareRegularView: View {
             .opacity(isFirstPage ? 0.3 : 1)
             .disabled(isFirstPage || isPageTransitioning)
             
-            Text("\(page + 1)")
+            Text("\(page + 1) / \(lastPage + 1)")
+                .font(.system(size: AppFontSize.xl.rawValue, weight: .medium))
                 .foregroundColor(AppColors.Gray400.color)
             
             AppButton(action: {
@@ -319,28 +326,40 @@ struct PresentationPrepareCompactView: View {
                                     HapticsImpactLight.impactOccurred()
                                 }) {
                                     HStack {
-                                        Text("Show Hints")
+                                        Text("Hide Hints")
                                         Image(systemName: "chevron.down")
                                     }
                                 }
                                 .variant(.ghost)
                                 .paddingHorz(0)
                                 .paddingVert(0)
-                                .opacity(viewModel.hintsExpandTransitionState)
+                                .opacity(
+                                    // Mimic opacity press animation, latter half. 0.1s latter. Transition animation takes 0.3s
+                                    (min(viewModel.hintsExpandTransitionState * 3, 1)) * 0.7 + 0.3
+                                )
+                                .onAppear() {
+                                    viewModel.animateExpand()
+                                }
                             } else {
                                 AppButton(action: {
                                     viewModel.hintsExpanded = true
                                     HapticsImpactLight.impactOccurred()
                                 }) {
                                     HStack {
-                                        Text("Hide Hints")
+                                        Text("Show Hints")
                                         Image(systemName: "chevron.right")
                                     }
                                 }
                                 .variant(.ghost)
                                 .paddingHorz(0)
                                 .paddingVert(0)
-                                .opacity(viewModel.hintsExpandTransitionState)
+                                .opacity(
+                                    // Mimic opacity press animation, latter half. 0.1s latter. Transition animation takes 0.3s
+                                    (min(viewModel.hintsExpandTransitionState * 3, 1)) * 0.7 + 0.3
+                                )
+                                .onAppear() {
+                                    viewModel.animateExpand()
+                                }
                             }
                         }
                         
@@ -387,7 +406,8 @@ struct PresentationPrepareCompactView: View {
             .opacity(isFirstPage ? 0.3 : 1)
             .disabled(isFirstPage || isPageTransitioning)
             
-            Text("\(page + 1)")
+            Text("\(page + 1) / \(lastPage + 1)")
+                .font(.system(size: AppFontSize.lg.rawValue, weight: .medium))
                 .foregroundColor(AppColors.Gray400.color)
             
             AppButton(action: {

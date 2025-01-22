@@ -4,9 +4,6 @@ import SwiftUI
 final class PresentationOverviewViewModel {
     var appearTransitionWorkItem: DispatchWorkItem? = nil
     var appearTransitionState: Double = 0
-    
-    var contentAppearTransitionState: Double = 0
-    var toolbarAppearTransitionState: Double = 0
 }
 
 struct PresentationOverviewRegularView: View {
@@ -50,7 +47,7 @@ struct PresentationOverviewRegularView: View {
 
         // Toolbar
         PresentationToolbar(
-            toolbarAppearTransitionState: $viewModel.toolbarAppearTransitionState,
+            toolbarAppearTransitionState: $viewModel.appearTransitionState,
             size: .large
         ) {
             AppButton(action: {
@@ -127,7 +124,7 @@ struct PresentationOverviewCompactView: View {
 
         // Toolbar
         PresentationToolbar(
-            toolbarAppearTransitionState: $viewModel.toolbarAppearTransitionState,
+            toolbarAppearTransitionState: $viewModel.appearTransitionState,
             size: .large
         ) {
             AppButton(action: {
@@ -206,12 +203,9 @@ struct PresentationOverviewView: View {
         }
         
         viewModel.appearTransitionState = 0
-        viewModel.toolbarAppearTransitionState = 0
-        
         viewModel.appearTransitionWorkItem = DispatchWorkItem {
             withAnimation(.easeIn(duration: 0.3)) {
                 self.viewModel.appearTransitionState = 1
-                self.viewModel.toolbarAppearTransitionState = 1
             }
         }
         
@@ -224,11 +218,9 @@ struct PresentationOverviewView: View {
         }
         
         viewModel.appearTransitionState = 1
-        viewModel.toolbarAppearTransitionState = 1
         viewModel.appearTransitionWorkItem = DispatchWorkItem {
             withAnimation(.easeOut(duration: 0.3)) {
                 self.viewModel.appearTransitionState = 0
-                self.viewModel.toolbarAppearTransitionState = 0
             } completion: {
                 self.viewType = viewType
             }
