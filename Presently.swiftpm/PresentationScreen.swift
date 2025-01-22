@@ -13,6 +13,93 @@ struct TokenizedTextView: View {
     }
 }
 
+public enum PresentationToolbarSize {
+    case small, large
+}
+
+struct PresentationToolbar<Content: View>: View {
+    
+    @Binding var toolbarAppearTransitionState: Double
+    let size: PresentationToolbarSize
+    
+    let content: Content
+    
+    init(toolbarAppearTransitionState: Binding<Double>,
+         size: PresentationToolbarSize,
+         @ViewBuilder content: () -> Content) {
+        _toolbarAppearTransitionState = toolbarAppearTransitionState
+        self.size = size
+        self.content = content()
+    }
+
+    var body: some View {
+        let safeAreaInsets = getSafeAreaInset()
+        
+        VStack {
+            if (size == .large) {
+                HStack {
+                    Spacer()
+                    HStack(spacing: 8) {
+                        content
+                    }
+                    .frame(
+                        alignment: .center
+                    )
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 8)
+                    .background(
+                        RoundedRectangle(cornerRadius: 20)
+                            .fill(AppColors.Gray900.color.opacity(0.75))
+                            .stroke(AppColors.Gray700.color, lineWidth: 1)
+                    )
+                    .opacity(toolbarAppearTransitionState)
+                    .scaleEffect(
+                        x: toolbarAppearTransitionState,
+                        y: 0.5 + (toolbarAppearTransitionState * 0.5)
+                    )
+                    .offset(
+                        y: (1 - toolbarAppearTransitionState) * 24
+                    )
+                    Spacer()
+                }
+            } else {
+                HStack {
+                    Spacer()
+                    HStack(spacing: 4) {
+                        content
+                    }
+                    .frame(
+                        alignment: .center
+                    )
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 8)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(AppColors.Gray900.color.opacity(0.75))
+                            .stroke(AppColors.Gray700.color, lineWidth: 1)
+                    )
+                    .opacity(toolbarAppearTransitionState)
+                    .scaleEffect(
+                        x: toolbarAppearTransitionState,
+                        y: 0.5 + (toolbarAppearTransitionState * 0.5)
+                    )
+                    .offset(
+                        y: (1 - toolbarAppearTransitionState) * 24
+                    )
+                    Spacer()
+                }
+            }
+        }
+        .frame(
+            maxHeight: .infinity,
+            alignment: .bottomTrailing
+        )
+        .safeAreaPadding(safeAreaInsets)
+        .padding(.horizontal, 24)
+        .padding(.bottom, 48)
+    }
+}
+
 struct PresentationViewCloseButton: View {
     let onClose: () -> Void
     

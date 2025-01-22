@@ -5,13 +5,22 @@ final class PresentationPrepareViewModel {
     var appearTransitionWorkItem: DispatchWorkItem? = nil
     var appearTransitionState: Double = 0
     
-    var expandTransitionState: Double = 1
-
+    var hintsExpanded = false
+    var hintsExpandTransitionState: Double = 1
+    
     // Pagination
     var page = 0;
     var nPage = 0;
+    var pageTransitionState: Double = 1
     var isPageTransitioning: Bool = false;
     
+    func animateExpand() {
+        self.hintsExpandTransitionState = 0
+        withAnimation(.easeInOut(duration: 0.3)) {
+            self.hintsExpandTransitionState = 1
+        }
+    }
+
     func goToPage(newPage: Int) {
         if (isPageTransitioning) {
             return
@@ -21,11 +30,11 @@ final class PresentationPrepareViewModel {
         isPageTransitioning = true
         appearTransitionWorkItem = DispatchWorkItem {
             withAnimation(.easeOut(duration: 0.15)) {
-                self.appearTransitionState = 0
+                self.pageTransitionState = 0
             } completion: {
                 self.page = newPage
                 withAnimation(.easeOut(duration: 0.15)) {
-                    self.appearTransitionState = 1
+                    self.pageTransitionState = 1
                 } completion: {
                     self.isPageTransitioning = false
                 }
@@ -43,21 +52,11 @@ struct PresentationPrepareRegularView: View {
     var goTo: ((_ viewType: PresentationViewType) -> Void)?
     var onClose: (() -> Void)?
     
-    @State var hintsExpanded = false
-    
-    func animateExpand() {
-        viewModel.expandTransitionState = 0
-        withAnimation(.easeInOut(duration: 0.3)) {
-            self.viewModel.expandTransitionState = 1
-        }
-    }
-    
     var body: some View {
         let page = viewModel.page
         let nPage = viewModel.nPage
         let isPageTransitioning = viewModel.isPageTransitioning
 
-        let safeAreaInsets = getSafeAreaInset()
         let presentationPart = presentationParts[page]
         
         let lastPage = (presentationParts.count - 1)
@@ -77,7 +76,7 @@ struct PresentationPrepareRegularView: View {
                         .foregroundStyle(AppColors.Gray400.color)
                     TokenizedTextView(tokens: presentationPart.content)
                         .font(.system(size: AppFontSize.xl2.rawValue, weight: .medium))
-                        .opacity(viewModel.appearTransitionState)
+                        .opacity(viewModel.appearTransitionState * viewModel.pageTransitionState)
                 }
                 .frame(
                     maxWidth: .infinity,
@@ -95,20 +94,20 @@ struct PresentationPrepareRegularView: View {
                 if (presentationPart.hint != nil) {
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
-                            Text("Context")
+                            Text("Hints")
                                 .frame(
                                     alignment: .leading
                                 )
                                 .font(.system(size: AppFontSize.xl2.rawValue, weight: .medium))
                                 .foregroundStyle(AppColors.Gray400.color)
                             Spacer()
-                            if (hintsExpanded) {
+                            if (viewModel.hintsExpanded) {
                                 AppButton(action: {
-                                    viewModel.expandTransitionState = 1
+                                    viewModel.hintsExpandTransitionState = 1
                                     withAnimation(.easeInOut(duration: 0.3)) {
-                                        self.viewModel.expandTransitionState = 0
+                                        self.viewModel.hintsExpandTransitionState = 0
                                     } completion: {
-                                        hintsExpanded = false
+                                        viewModel.hintsExpanded = false
                                     }
                                     HapticsImpactLight.impactOccurred()
                                 }) {
@@ -121,13 +120,13 @@ struct PresentationPrepareRegularView: View {
                                 .size(.large)
                                 .paddingHorz(0)
                                 .paddingVert(0)
-                                .opacity(viewModel.expandTransitionState)
+                                .opacity(viewModel.hintsExpandTransitionState)
                                 .onAppear() {
-                                    animateExpand()
+                                    viewModel.animateExpand()
                                 }
                             } else {
                                 AppButton(action: {
-                                    hintsExpanded = true
+                                    viewModel.hintsExpanded = true
                                     HapticsImpactLight.impactOccurred()
                                 }) {
                                     HStack {
@@ -139,17 +138,17 @@ struct PresentationPrepareRegularView: View {
                                 .size(.large)
                                 .paddingHorz(0)
                                 .paddingVert(0)
-                                .opacity(viewModel.expandTransitionState)
+                                .opacity(viewModel.hintsExpandTransitionState)
                                 .onAppear() {
-                                    animateExpand()
+                                    viewModel.animateExpand()
                                 }
                             }
                         }
                         
-                        if (hintsExpanded) {
+                        if (viewModel.hintsExpanded) {
                             TokenizedTextView(tokens: presentationPart.hint!)
                                 .font(.system(size: AppFontSize.xl2.rawValue, weight: .medium))
-                                .opacity(viewModel.expandTransitionState)
+                                .opacity(viewModel.hintsExpandTransitionState * viewModel.appearTransitionState * viewModel.pageTransitionState)
                                 .foregroundStyle(AppColors.Primary500.color)
                         }
                     }
@@ -172,95 +171,75 @@ struct PresentationPrepareRegularView: View {
         .title(title)
         .img("playground")
 
-        // Toolbar
-        VStack {
-            HStack {
-                Spacer()
+        PresentationToolbar(
+            toolbarAppearTransitionState: $viewModel.appearTransitionState,
+            size: .large
+        ) {
+            AppButton(action: {
+                viewModel.goToPage(newPage: page - 1)
+                HapticsImpactLight.impactOccurred()
+            }) {
                 HStack {
-                    AppButton(action: {
-                        viewModel.goToPage(newPage: page - 1)
-                        HapticsImpactLight.impactOccurred()
-                    }) {
-                        HStack {
-                            Image(systemName: "arrow.left")
-                            Text("Back")
-                        }
-                        .foregroundStyle(AppColors.Primary50.color)
-                    }
-                    .variant(.ghost)
-                    .size(.large)
-                    .opacity(isFirstPage ? 0.3 : 1)
-                    .disabled(isFirstPage || isPageTransitioning)
-                    
-                    Text("\(page + 1)")
-                        .foregroundColor(AppColors.Gray400.color)
-                    
-                    AppButton(action: {
-                        viewModel.goToPage(newPage: page + 1)
-                        HapticsImpactLight.impactOccurred()
-                    }) {
-                        HStack {
-                            Text("Next")
-                            Image(systemName: "arrow.right")
-                        }
-                        .foregroundStyle(AppColors.Primary50.color)
-                    }
-                    .variant(.ghost)
-                    .size(.large)
-                    .opacity(isLastPage ? 0.3 : 1)
-                    .disabled(isLastPage || isPageTransitioning)
-
-                    if (page >= lastPage) {
-                        AppButton(action: {
-                            guard let goTo else {
-                                return
-                            }
-                            goTo(.Present)
-                            HapticsImpactLight.impactOccurred()
-                        }) {
-                            Text("Start")
-                        }
-                        .size(.large)
-                        .opacity(
-                            nPage <= presentationParts.count ? viewModel.appearTransitionState : 1
-                        )
-                    } else {
-                        AppButton(action: {
-                            guard let goTo else {
-                                return
-                            }
-                            goTo(.Present)
-                            HapticsImpactLight.impactOccurred()
-                        }) {
-                            Text("Start")
-                        }
-                        .variant(.ghost)
-                        .size(.large)
-                        .opacity(
-                            nPage >= presentationParts.count ? viewModel.appearTransitionState : 1
-                        )
-                    }
+                    Image(systemName: "arrow.left")
+                    Text("Back")
                 }
-                .frame(
-                    alignment: .center
-                )
-                .padding(.vertical, 8)
-                .padding(.horizontal, 8)
-                .background(
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(AppColors.Gray800.color.opacity(0.75))
-                        .stroke(AppColors.Gray700.color, lineWidth: 1)
-                )
-                Spacer()
+                .foregroundStyle(AppColors.Primary50.color)
             }
+            .variant(.ghost)
+            .size(.large)
+            .opacity(isFirstPage ? 0.3 : 1)
+            .disabled(isFirstPage || isPageTransitioning)
+            
+            Text("\(page + 1)")
+                .foregroundColor(AppColors.Gray400.color)
+            
+            AppButton(action: {
+                viewModel.goToPage(newPage: page + 1)
+                HapticsImpactLight.impactOccurred()
+            }) {
+                HStack {
+                    Text("Next")
+                    Image(systemName: "arrow.right")
+                }
+                .foregroundStyle(AppColors.Primary50.color)
+            }
+            .variant(.ghost)
+            .size(.large)
+            .opacity(isLastPage ? 0.3 : 1)
+            .disabled(isLastPage || isPageTransitioning)
+            
+            if (page >= lastPage) {
+                AppButton(action: {
+                    guard let goTo else {
+                        return
+                    }
+                    goTo(.Present)
+                    HapticsImpactLight.impactOccurred()
+                }) {
+                    Text("Start")
+                }
+                .size(.large)
+                .opacity(
+                    nPage <= presentationParts.count ? viewModel.pageTransitionState : 1
+                )
+            } else {
+                AppButton(action: {
+                    guard let goTo else {
+                        return
+                    }
+                    goTo(.Present)
+                    HapticsImpactLight.impactOccurred()
+                }) {
+                    Text("Start")
+                }
+                .variant(.ghost)
+                .size(.large)
+                .opacity(
+                    nPage >= presentationParts.count ? viewModel.pageTransitionState : 1
+                )
+            }
+            
         }
-        .frame(
-            maxHeight: .infinity,
-            alignment: .bottomTrailing
-        )
-        .safeAreaPadding(safeAreaInsets)
-        .padding(.horizontal, 24)
-        .padding(.bottom, 48)
         
         PresentationViewCloseButton(onClose: {
             guard let onClose else {
@@ -280,14 +259,11 @@ struct PresentationPrepareCompactView: View {
     var goTo: ((_ viewType: PresentationViewType) -> Void)?
     var onClose: (() -> Void)?
     
-    @State var hintsExpanded = false
-    
     var body: some View {
         let page = viewModel.page
         let nPage = viewModel.nPage
         let isPageTransitioning = viewModel.isPageTransitioning
 
-        let safeAreaInsets = getSafeAreaInset()
         let presentationPart = presentationParts[page]
         
         let lastPage = (presentationParts.count - 1)
@@ -307,7 +283,7 @@ struct PresentationPrepareCompactView: View {
                         .foregroundStyle(AppColors.Gray400.color)
                     TokenizedTextView(tokens: presentationPart.content)
                         .font(.system(size: AppFontSize.lg.rawValue, weight: .medium))
-                        .opacity(viewModel.appearTransitionState)
+                        .opacity(viewModel.appearTransitionState * viewModel.pageTransitionState)
                 }
                 .frame(
                     maxWidth: .infinity,
@@ -325,16 +301,21 @@ struct PresentationPrepareCompactView: View {
                 if (presentationPart.hint != nil) {
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
-                            Text("Context")
+                            Text("Hints")
                                 .frame(
                                     alignment: .leading
                                 )
                                 .font(.system(size: AppFontSize.lg.rawValue, weight: .medium))
                                 .foregroundStyle(AppColors.Gray400.color)
                             Spacer()
-                            if (hintsExpanded) {
+                            if (viewModel.hintsExpanded) {
                                 AppButton(action: {
-                                    hintsExpanded = !hintsExpanded
+                                    viewModel.hintsExpandTransitionState = 1
+                                    withAnimation(.easeInOut(duration: 0.3)) {
+                                        self.viewModel.hintsExpandTransitionState = 0
+                                    } completion: {
+                                        viewModel.hintsExpanded = false
+                                    }
                                     HapticsImpactLight.impactOccurred()
                                 }) {
                                     HStack {
@@ -345,9 +326,10 @@ struct PresentationPrepareCompactView: View {
                                 .variant(.ghost)
                                 .paddingHorz(0)
                                 .paddingVert(0)
+                                .opacity(viewModel.hintsExpandTransitionState)
                             } else {
                                 AppButton(action: {
-                                    hintsExpanded = !hintsExpanded
+                                    viewModel.hintsExpanded = true
                                     HapticsImpactLight.impactOccurred()
                                 }) {
                                     HStack {
@@ -358,13 +340,14 @@ struct PresentationPrepareCompactView: View {
                                 .variant(.ghost)
                                 .paddingHorz(0)
                                 .paddingVert(0)
+                                .opacity(viewModel.hintsExpandTransitionState)
                             }
                         }
                         
-                        if (hintsExpanded) {
+                        if (viewModel.hintsExpanded) {
                             TokenizedTextView(tokens: presentationPart.hint!)
                                 .font(.system(size: AppFontSize.lg.rawValue, weight: .medium))
-                                .opacity(viewModel.appearTransitionState)
+                                .opacity(viewModel.appearTransitionState * viewModel.hintsExpandTransitionState * viewModel.pageTransitionState)
                                 .foregroundStyle(AppColors.Primary500.color)
                         }
                     }
@@ -382,94 +365,74 @@ struct PresentationPrepareCompactView: View {
                     )
                 }
             }
-            
         }
         .title(title)
         .img("playground")
 
-        // Toolbar
-        VStack {
-            HStack(spacing: 0) {
-                Spacer()
+        PresentationToolbar(
+            toolbarAppearTransitionState: $viewModel.appearTransitionState,
+            size: .small
+        ) {
+            AppButton(action: {
+                viewModel.goToPage(newPage: page - 1)
+                HapticsImpactLight.impactOccurred()
+            }) {
                 HStack {
-                    AppButton(action: {
-                        viewModel.goToPage(newPage: page - 1)
-                        HapticsImpactLight.impactOccurred()
-                    }) {
-                        HStack {
-                            Image(systemName: "arrow.left")
-                        }
-                        .foregroundStyle(AppColors.Primary50.color)
-                    }
-                    .variant(.ghost)
-                    .opacity(isFirstPage ? 0.3 : 1)
-                    .disabled(isFirstPage || isPageTransitioning)
-                    
-                    Text("\(page + 1)")
-                        .foregroundColor(AppColors.Gray400.color)
-                    
-                    AppButton(action: {
-                        viewModel.goToPage(newPage: page + 1)
-                        HapticsImpactLight.impactOccurred()
-                    }) {
-                        HStack {
-                            Image(systemName: "arrow.right")
-                        }
-                        .foregroundStyle(AppColors.Primary50.color)
-                    }
-                    .variant(.ghost)
-                    .opacity(isLastPage ? 0.3 : 1)
-                    .disabled(isLastPage || isPageTransitioning)
-
-                    if (page >= lastPage) {
-                        AppButton(action: {
-                            guard let goTo else {
-                                return
-                            }
-                            goTo(.Present)
-                            HapticsImpactLight.impactOccurred()
-                        }) {
-                            Text("Start")
-                        }
-                        .opacity(
-                            nPage <= presentationParts.count ? viewModel.appearTransitionState : 1
-                        )
-                    } else {
-                        AppButton(action: {
-                            guard let goTo else {
-                                return
-                            }
-                            goTo(.Present)
-                            HapticsImpactLight.impactOccurred()
-                        }) {
-                            Text("Start")
-                        }
-                        .variant(.ghost)
-                        .opacity(
-                            nPage >= presentationParts.count ? viewModel.appearTransitionState : 1
-                        )
-                    }
+                    Image(systemName: "arrow.left")
                 }
-                .frame(
-                    alignment: .center
+                .foregroundStyle(AppColors.Primary50.color)
+            }
+            .size(.small)
+            .variant(.ghost)
+            .opacity(isFirstPage ? 0.3 : 1)
+            .disabled(isFirstPage || isPageTransitioning)
+            
+            Text("\(page + 1)")
+                .foregroundColor(AppColors.Gray400.color)
+            
+            AppButton(action: {
+                viewModel.goToPage(newPage: page + 1)
+                HapticsImpactLight.impactOccurred()
+            }) {
+                HStack {
+                    Image(systemName: "arrow.right")
+                }
+                .foregroundStyle(AppColors.Primary50.color)
+            }
+            .size(.small)
+            .variant(.ghost)
+            .opacity(isLastPage ? 0.3 : 1)
+            .disabled(isLastPage || isPageTransitioning)
+            
+            if (page >= lastPage) {
+                AppButton(action: {
+                    guard let goTo else {
+                        return
+                    }
+                    goTo(.Present)
+                    HapticsImpactLight.impactOccurred()
+                }) {
+                    Text("Start")
+                }
+                .opacity(
+                    nPage <= presentationParts.count ? viewModel.pageTransitionState : 1
                 )
-                .padding(.vertical, 2)
-                .padding(.horizontal, 2)
-                .background(
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(AppColors.Gray800.color.opacity(0.75))
-                        .stroke(AppColors.Gray700.color, lineWidth: 1)
+            } else {
+                AppButton(action: {
+                    guard let goTo else {
+                        return
+                    }
+                    goTo(.Present)
+                    HapticsImpactLight.impactOccurred()
+                }) {
+                    Text("Start")
+                }
+                .variant(.ghost)
+                .opacity(
+                    nPage >= presentationParts.count ? viewModel.pageTransitionState : 1
                 )
-                Spacer()
             }
         }
-        .frame(
-            maxHeight: .infinity,
-            alignment: .bottomTrailing
-        )
-        .safeAreaPadding(safeAreaInsets)
-        .padding(.horizontal, 8)
-        .padding(.bottom, 8)
         
         PresentationViewCloseButton(onClose: {
             guard let onClose else {

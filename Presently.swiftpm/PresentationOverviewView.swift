@@ -4,6 +4,9 @@ import SwiftUI
 final class PresentationOverviewViewModel {
     var appearTransitionWorkItem: DispatchWorkItem? = nil
     var appearTransitionState: Double = 0
+    
+    var contentAppearTransitionState: Double = 0
+    var toolbarAppearTransitionState: Double = 0
 }
 
 struct PresentationOverviewRegularView: View {
@@ -15,8 +18,6 @@ struct PresentationOverviewRegularView: View {
     var onClose: (() -> Void)?
     
     var body: some View {
-        let safeAreaInsets = getSafeAreaInset()
-        
         PresentationRegularLayoutView(
             imageAppearAnimationState: $viewModel.appearTransitionState
         ) {
@@ -48,53 +49,33 @@ struct PresentationOverviewRegularView: View {
         .img("playground")
 
         // Toolbar
-        VStack {
-            HStack {
-                Spacer()
-                HStack(spacing: 8) {
-                    AppButton(action: {
-                        guard let goTo else {
-                            return
-                        }
-                        goTo(.Prepare)
-                        HapticsImpactLight.impactOccurred()
-                    }) {
-                        Text("Prepare")
-                    }
-                    .variant(.ghost)
-                    .size(.large)
-
-                    AppButton(action: {
-                        guard let goTo else {
-                            return
-                        }
-                        goTo(.Present)
-                        HapticsImpactLight.impactOccurred()
-                    }) {
-                        Text("Start")
-                    }
-                    .size(.large)
+        PresentationToolbar(
+            toolbarAppearTransitionState: $viewModel.toolbarAppearTransitionState,
+            size: .large
+        ) {
+            AppButton(action: {
+                guard let goTo else {
+                    return
                 }
-                .frame(
-                    alignment: .center
-                )
-                .padding(.horizontal, 8)
-                .padding(.vertical, 8)
-                .background(
-                    RoundedRectangle(cornerRadius: 20)
-                        .fill(AppColors.Gray900.color.opacity(0.75))
-                        .stroke(AppColors.Gray700.color, lineWidth: 1)
-                )
-                Spacer()
+                goTo(.Prepare)
+                HapticsImpactLight.impactOccurred()
+            }) {
+                Text("Prepare")
             }
+            .variant(.ghost)
+            .size(.large)
+            
+            AppButton(action: {
+                guard let goTo else {
+                    return
+                }
+                goTo(.Present)
+                HapticsImpactLight.impactOccurred()
+            }) {
+                Text("Start")
+            }
+            .size(.large)
         }
-        .frame(
-            maxHeight: .infinity,
-            alignment: .bottomTrailing
-        )
-        .safeAreaPadding(safeAreaInsets)
-        .padding(.horizontal, 24)
-        .padding(.bottom, 48)
         
         PresentationViewCloseButton(onClose: {
             guard let onClose else {
@@ -115,8 +96,6 @@ struct PresentationOverviewCompactView: View {
     var onClose: (() -> Void)?
 
     var body: some View {
-        let safeAreaInsets = getSafeAreaInset()
-        
         PresentationCompactLayoutView(
             imageAppearAnimationState: $viewModel.appearTransitionState
         ) {
@@ -147,51 +126,31 @@ struct PresentationOverviewCompactView: View {
         .img("playground")
 
         // Toolbar
-        VStack {
-            HStack {
-                Spacer()
-                HStack(spacing: 8) {
-                    AppButton(action: {
-                        guard let goTo else {
-                            return
-                        }
-                        goTo(.Prepare)
-                        HapticsImpactLight.impactOccurred()
-                    }) {
-                        Text("Prepare")
-                    }
-                    .variant(.ghost)
-
-                    AppButton(action: {
-                        guard let goTo else {
-                            return
-                        }
-                        goTo(.Present)
-                        HapticsImpactLight.impactOccurred()
-                    }) {
-                        Text("Start")
-                    }
+        PresentationToolbar(
+            toolbarAppearTransitionState: $viewModel.toolbarAppearTransitionState,
+            size: .large
+        ) {
+            AppButton(action: {
+                guard let goTo else {
+                    return
                 }
-                .frame(
-                    alignment: .center
-                )
-                .padding(.horizontal, 8)
-                .padding(.vertical, 8)
-                .background(
-                    RoundedRectangle(cornerRadius: 20)
-                        .fill(AppColors.Gray900.color.opacity(0.75))
-                        .stroke(AppColors.Gray700.color, lineWidth: 1)
-                )
-                Spacer()
+                goTo(.Prepare)
+                HapticsImpactLight.impactOccurred()
+            }) {
+                Text("Prepare")
+            }
+            .variant(.ghost)
+            
+            AppButton(action: {
+                guard let goTo else {
+                    return
+                }
+                goTo(.Present)
+                HapticsImpactLight.impactOccurred()
+            }) {
+                Text("Start")
             }
         }
-        .frame(
-            maxHeight: .infinity,
-            alignment: .bottomTrailing
-        )
-        .safeAreaPadding(safeAreaInsets)
-        .padding(.horizontal, 24)
-        .padding(.bottom, 48)
         
         PresentationViewCloseButton(onClose: {
             guard let onClose else {
@@ -247,11 +206,15 @@ struct PresentationOverviewView: View {
         }
         
         viewModel.appearTransitionState = 0
+        viewModel.toolbarAppearTransitionState = 0
+        
         viewModel.appearTransitionWorkItem = DispatchWorkItem {
             withAnimation(.easeIn(duration: 0.3)) {
                 self.viewModel.appearTransitionState = 1
+                self.viewModel.toolbarAppearTransitionState = 1
             }
         }
+        
         DispatchQueue.main.async(execute: viewModel.appearTransitionWorkItem!)
     }
     
@@ -261,9 +224,11 @@ struct PresentationOverviewView: View {
         }
         
         viewModel.appearTransitionState = 1
+        viewModel.toolbarAppearTransitionState = 1
         viewModel.appearTransitionWorkItem = DispatchWorkItem {
             withAnimation(.easeOut(duration: 0.3)) {
                 self.viewModel.appearTransitionState = 0
+                self.viewModel.toolbarAppearTransitionState = 0
             } completion: {
                 self.viewType = viewType
             }

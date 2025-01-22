@@ -31,11 +31,13 @@ public struct AppButton<Content: View>: View {
             let vertPadding: CGFloat = (self.vertPadding) ?? (size == .large ? 16 : 12);
             let borderRadius: CGFloat = size == .large ? 16 : 8;
 
+            let size = size == .large ? AppFontSize.xl.rawValue : AppFontSize.lg.rawValue
+            
             if (variant == .ghost) {
                 HStack {
                     content
                 }
-                .font(.system(size: AppFontSize.xl.rawValue, weight: .medium))
+                .font(.system(size: size, weight: .medium))
                 .foregroundColor(AppColors.Primary500.color)
                 .padding(.horizontal, horzPadding)
                 .padding(.vertical, vertPadding)
@@ -43,7 +45,7 @@ public struct AppButton<Content: View>: View {
                 HStack {
                     content
                 }
-                .font(.system(size: AppFontSize.xl.rawValue, weight: .black))
+                .font(.system(size: size, weight: .black))
                 .foregroundColor(AppColors.Gray50.color)
                 .padding(.horizontal, horzPadding)
                 .padding(.vertical, vertPadding)
