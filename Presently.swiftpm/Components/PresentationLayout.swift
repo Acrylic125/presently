@@ -11,15 +11,15 @@ struct ViewSizeKey: PreferenceKey {
 
 struct PresentationRegularLayoutView<Content: View>: View {
     
-    @Binding var imageAppearAnimationState: Double
+    var imageAppearAnimationState: Double
     @State private var rightContentHeight: CGFloat = 0
     
     let content: Content
     private var title: String = ""
     private var img: String = ""
 
-    init(imageAppearAnimationState: Binding<Double>, @ViewBuilder content: () -> Content) {
-        _imageAppearAnimationState = imageAppearAnimationState
+    init(imageAppearAnimationState: Double, @ViewBuilder content: () -> Content) {
+        self.imageAppearAnimationState = imageAppearAnimationState
         self.content = content()
     }
     
@@ -124,13 +124,6 @@ struct PresentationRegularLayoutView<Content: View>: View {
             maxWidth: .infinity,
             maxHeight: .infinity
         )
-        
-        
-//        PresentationViewCloseButton(onClose: {
-//            if (appearTransitionWorkItem != nil) {
-//                appearTransitionWorkItem!.cancel()
-//            }
-//        })
     }
     
     public func title(_ v: String) -> PresentationRegularLayoutView {
@@ -149,14 +142,14 @@ struct PresentationRegularLayoutView<Content: View>: View {
 
 struct PresentationCompactLayoutView<Content: View>: View {
     
-    @Binding var imageAppearAnimationState: Double
+    var imageAppearAnimationState: Double
     
     let content: Content
     private var title: String = ""
     private var img: String = ""
 
-    init(imageAppearAnimationState: Binding<Double>, @ViewBuilder content: () -> Content) {
-        _imageAppearAnimationState = imageAppearAnimationState
+    init(imageAppearAnimationState: Double, @ViewBuilder content: () -> Content) {
+        self.imageAppearAnimationState = imageAppearAnimationState
         self.content = content()
     }
     

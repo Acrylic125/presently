@@ -19,15 +19,14 @@ public enum PresentationToolbarSize {
 
 struct PresentationToolbar<Content: View>: View {
     
-    @Binding var toolbarAppearTransitionState: Double
+    var toolbarAppearTransitionState: Double
     let size: PresentationToolbarSize
-    
     let content: Content
     
-    init(toolbarAppearTransitionState: Binding<Double>,
+    init(toolbarAppearTransitionState: Double,
          size: PresentationToolbarSize,
          @ViewBuilder content: () -> Content) {
-        _toolbarAppearTransitionState = toolbarAppearTransitionState
+        self.toolbarAppearTransitionState = toolbarAppearTransitionState
         self.size = size
         self.content = content()
     }

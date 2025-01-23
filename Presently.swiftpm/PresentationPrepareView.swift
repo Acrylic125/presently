@@ -64,7 +64,7 @@ struct PresentationPrepareRegularView: View {
         let isLastPage = nPage >= lastPage
 
         PresentationRegularLayoutView(
-            imageAppearAnimationState: $viewModel.appearTransitionState
+            imageAppearAnimationState: viewModel.appearTransitionState * viewModel.pageTransitionState
         ) {
             VStack(spacing: 16) {
                 VStack(alignment: .leading, spacing: 12) {
@@ -178,7 +178,7 @@ struct PresentationPrepareRegularView: View {
         .img("playground")
 
         PresentationToolbar(
-            toolbarAppearTransitionState: $viewModel.appearTransitionState,
+            toolbarAppearTransitionState: viewModel.appearTransitionState,
             size: .large
         ) {
             AppButton(action: {
@@ -278,7 +278,7 @@ struct PresentationPrepareCompactView: View {
         let isLastPage = nPage >= lastPage
 
         PresentationCompactLayoutView(
-            imageAppearAnimationState: $viewModel.appearTransitionState
+            imageAppearAnimationState: viewModel.appearTransitionState * viewModel.pageTransitionState
         ) {
             VStack(spacing: 16) {
                 VStack(alignment: .leading, spacing: 12) {
@@ -389,7 +389,7 @@ struct PresentationPrepareCompactView: View {
         .img("playground")
 
         PresentationToolbar(
-            toolbarAppearTransitionState: $viewModel.appearTransitionState,
+            toolbarAppearTransitionState: viewModel.appearTransitionState,
             size: .small
         ) {
             AppButton(action: {
@@ -469,7 +469,7 @@ struct PresentationPrepareView: View {
 
     @Binding var viewType: PresentationViewType
     @State var viewModel = PresentationPrepareViewModel()
-    
+
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
     
     var body: some View {

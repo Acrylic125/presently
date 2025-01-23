@@ -16,7 +16,7 @@ struct PresentationOverviewRegularView: View {
     
     var body: some View {
         PresentationRegularLayoutView(
-            imageAppearAnimationState: $viewModel.appearTransitionState
+            imageAppearAnimationState: viewModel.appearTransitionState
         ) {
             VStack(alignment: .leading, spacing: 12) {
                 Text("Context")
@@ -47,7 +47,7 @@ struct PresentationOverviewRegularView: View {
 
         // Toolbar
         PresentationToolbar(
-            toolbarAppearTransitionState: $viewModel.appearTransitionState,
+            toolbarAppearTransitionState: viewModel.appearTransitionState,
             size: .large
         ) {
             AppButton(action: {
@@ -94,7 +94,7 @@ struct PresentationOverviewCompactView: View {
 
     var body: some View {
         PresentationCompactLayoutView(
-            imageAppearAnimationState: $viewModel.appearTransitionState
+            imageAppearAnimationState: viewModel.appearTransitionState
         ) {
             VStack(alignment: .leading, spacing: 8) {
                 Text("Context")
@@ -124,7 +124,7 @@ struct PresentationOverviewCompactView: View {
 
         // Toolbar
         PresentationToolbar(
-            toolbarAppearTransitionState: $viewModel.appearTransitionState,
+            toolbarAppearTransitionState: viewModel.appearTransitionState,
             size: .large
         ) {
             AppButton(action: {
