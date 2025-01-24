@@ -6,27 +6,27 @@ final class PresentationOverviewViewModel {
     var appearTransitionState: Double = 0
 }
 
-struct PresentationOverviewRegularView: View {
-    let title: String;
+struct PresentationOverviewContentView: View {
+    let size: AppContentSize
     let context: [StringToken];
     @Binding var viewModel: PresentationOverviewViewModel
 
-    var goTo: ((_ viewType: PresentationViewType) -> Void)?
-    var onClose: (() -> Void)?
-    
     var body: some View {
-        PresentationRegularLayoutView(
-            imageAppearAnimationState: viewModel.appearTransitionState
-        ) {
-            VStack(alignment: .leading, spacing: 12) {
+        let containerPadding: CGFloat = size == .large ? 24 : 12
+        let containerSpacing: CGFloat = size == .large ? 12 : 8
+        let containerBorderRadius: CGFloat = size == .large ? 16 : 8
+        let containerTextSize: AppFontSize = size == .large ? .xl2 : .lg
+
+        VStack(spacing: size == .large ? 24 : 16) {
+            VStack(alignment: .leading, spacing: containerSpacing) {
                 Text("Context")
                     .frame(
                         alignment: .leading
                     )
-                    .font(.system(size: AppFontSize.xl2.rawValue, weight: .medium))
+                    .font(.system(size: containerTextSize.rawValue, weight: .medium))
                     .foregroundStyle(AppColors.Gray400.color)
                 TokenizedTextView(tokens: context)
-                    .font(.system(size: AppFontSize.xl2.rawValue, weight: .medium))
+                    .font(.system(size: containerTextSize.rawValue, weight: .medium))
                     .opacity(viewModel.appearTransitionState)
             }
             .frame(
@@ -34,127 +34,14 @@ struct PresentationOverviewRegularView: View {
                 maxHeight: .infinity,
                 alignment: .topLeading
             )
-            .padding(.horizontal, 24)
-            .padding(.vertical, 24)
+            .padding(.horizontal, containerPadding)
+            .padding(.vertical, containerPadding)
             .background(
-                RoundedRectangle(cornerRadius: 16)
+                RoundedRectangle(cornerRadius: containerBorderRadius)
                     .fill(AppColors.Gray900.color)
                     .stroke(AppColors.Gray700.color, lineWidth: 1)
             )
         }
-        .title(title)
-        .img("playground")
-
-        // Toolbar
-        PresentationToolbar(
-            toolbarAppearTransitionState: viewModel.appearTransitionState,
-            size: .large
-        ) {
-            AppButton(action: {
-                guard let goTo else {
-                    return
-                }
-                goTo(.Prepare)
-                HapticsImpactLight.impactOccurred()
-            }) {
-                Text("Prepare")
-            }
-            .variant(.ghost)
-            .size(.large)
-            
-            AppButton(action: {
-                guard let goTo else {
-                    return
-                }
-                goTo(.Present)
-                HapticsImpactLight.impactOccurred()
-            }) {
-                Text("Start")
-            }
-            .size(.large)
-        }
-        
-        PresentationViewCloseButton(onClose: {
-            guard let onClose else {
-                return
-            }
-            onClose()
-        })
-    }
-    
-}
-
-struct PresentationOverviewCompactView: View {
-    let title: String;
-    let context: [StringToken];
-    @Binding var viewModel: PresentationOverviewViewModel
-
-    var goTo: ((_ viewType: PresentationViewType) -> Void)?
-    var onClose: (() -> Void)?
-
-    var body: some View {
-        PresentationCompactLayoutView(
-            imageAppearAnimationState: viewModel.appearTransitionState
-        ) {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Context")
-                    .frame(
-                        alignment: .leading
-                    )
-                    .font(.system(size: AppFontSize.lg.rawValue, weight: .medium))
-                    .foregroundStyle(AppColors.Gray400.color)
-                TokenizedTextView(tokens: context)
-                    .font(.system(size: AppFontSize.lg.rawValue, weight: .medium))
-                    .opacity(viewModel.appearTransitionState)
-            }
-            .frame(
-                maxWidth: .infinity,
-                alignment: .topLeading
-            )
-            .padding(.horizontal, 12)
-            .padding(.vertical, 12)
-            .background(
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(AppColors.Gray900.color)
-                    .stroke(AppColors.Gray700.color, lineWidth: 1)
-            )
-        }
-        .title(title)
-        .img("playground")
-
-        // Toolbar
-        PresentationToolbar(
-            toolbarAppearTransitionState: viewModel.appearTransitionState,
-            size: .large
-        ) {
-            AppButton(action: {
-                guard let goTo else {
-                    return
-                }
-                goTo(.Prepare)
-                HapticsImpactLight.impactOccurred()
-            }) {
-                Text("Prepare")
-            }
-            .variant(.ghost)
-            
-            AppButton(action: {
-                guard let goTo else {
-                    return
-                }
-                goTo(.Present)
-                HapticsImpactLight.impactOccurred()
-            }) {
-                Text("Start")
-            }
-        }
-        
-        PresentationViewCloseButton(onClose: {
-            guard let onClose else {
-                return
-            }
-            onClose()
-        })
     }
 }
 
@@ -168,27 +55,63 @@ struct PresentationOverviewView: View {
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
     
     var body: some View {
-        if (horizontalSizeClass == .compact) {
-             PresentationOverviewCompactView(
-                title: title,
-                context: context,
-                viewModel: $viewModel,
-                goTo: self.goTo,
-                onClose: self.onClose
-            ).onAppear() {
-                animateIn()
+        let buttonSize: AppButtonSize = horizontalSizeClass == .regular ? .large : .small
+        let toolbarSize: PresentationToolbarSize = horizontalSizeClass == .regular ? .large : .small
+
+        if horizontalSizeClass == .regular {
+            PresentationRegularLayoutView(
+                imageAppearAnimationState: viewModel.appearTransitionState
+            ) {
+                PresentationOverviewContentView(
+                    size: .large,
+                    context: context,
+                    viewModel: $viewModel
+                )
             }
+            .title(title)
+            .img("playground")
         } else {
-             PresentationOverviewRegularView(
-                title: title,
-                context: context,
-                viewModel: $viewModel,
-                goTo: self.goTo,
-                onClose: self.onClose
-            ).onAppear() {
+            PresentationCompactLayoutView(
+                imageAppearAnimationState: viewModel.appearTransitionState
+            ) {
+                PresentationOverviewContentView(
+                    size: .small,
+                    context: context,
+                    viewModel: $viewModel
+                )
+
+            }
+            .title(title)
+            .img("playground")
+        }
+
+        // Toolbar
+        PresentationToolbar(
+            toolbarAppearTransitionState: viewModel.appearTransitionState,
+            size: toolbarSize
+        ) {
+            AppButton(action: {
+                goTo(viewType: .Prepare)
+                HapticsImpactLight.impactOccurred()
+            }) {
+                Text("Prepare")
+            }
+            .variant(.ghost)
+            .size(buttonSize)
+            
+            AppButton(action: {
+                goTo(viewType: .Present)
+                HapticsImpactLight.impactOccurred()
+            }) {
+                Text("Start")
+            }
+            .size(buttonSize)
+        }
+        
+        PresentationViewCloseButton(onClose: self.onClose)
+            .onAppear() {
                 animateIn()
             }
-        }
     }
     
     func onClose() {

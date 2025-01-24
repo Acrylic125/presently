@@ -1,5 +1,9 @@
 import SwiftUI
 
+public enum AppContentSize {
+    case small, large
+}
+
 public enum AppButtonSize {
     case small, large
 }

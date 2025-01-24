@@ -44,422 +44,121 @@ final class PresentationPrepareViewModel {
     }
 }
 
-struct PresentationPrepareRegularView: View {
-    let title: String;
-    let presentationParts: [PresentationPart];
+struct PresentationPrepareContentView: View {
+    let size: AppContentSize
+    let presentationPart: PresentationPart
     @Binding var viewModel: PresentationPrepareViewModel
-
-    var goTo: ((_ viewType: PresentationViewType) -> Void)?
-    var onClose: (() -> Void)?
     
     var body: some View {
-        let page = viewModel.page
-        let nPage = viewModel.nPage
-        let isPageTransitioning = viewModel.isPageTransitioning
+        let containerPadding: CGFloat = size == .large ? 24 : 12
+        let containerSpacing: CGFloat = size == .large ? 12 : 8
+        let containerBorderRadius: CGFloat = size == .large ? 16 : 8
+        let containerTextSize: AppFontSize = size == .large ? .xl2 : .lg
 
-        let presentationPart = presentationParts[page]
-        
-        let lastPage = (presentationParts.count - 1)
-        let isFirstPage = nPage <= 0
-        let isLastPage = nPage >= lastPage
-
-        PresentationRegularLayoutView(
-            imageAppearAnimationState: viewModel.appearTransitionState * viewModel.pageTransitionState
-        ) {
-            VStack(spacing: 16) {
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Context")
-                        .frame(
-                            alignment: .leading
-                        )
-                        .font(.system(size: AppFontSize.xl2.rawValue, weight: .medium))
-                        .foregroundStyle(AppColors.Gray400.color)
-                    TokenizedTextView(tokens: presentationPart.content)
-                        .font(.system(size: AppFontSize.xl2.rawValue, weight: .medium))
-                        .opacity(viewModel.appearTransitionState * viewModel.pageTransitionState)
+        VStack(spacing: size == .large ? 24 : 16) {
+            VStack(alignment: .leading, spacing: containerSpacing) {
+                Text("Context")
+                    .frame(
+                        alignment: .leading
+                    )
+                    .font(.system(size: containerTextSize.rawValue, weight: .medium))
+                    .foregroundStyle(AppColors.Gray400.color)
+                TokenizedTextView(tokens: presentationPart.content)
+                    .font(.system(size: containerTextSize.rawValue, weight: .medium))
+                    .opacity(viewModel.appearTransitionState * viewModel.pageTransitionState)
+            }
+            .frame(
+                maxWidth: .infinity,
+                maxHeight: .infinity,
+                alignment: .topLeading
+            )
+            .padding(.horizontal, containerPadding)
+            .padding(.vertical, containerPadding)
+            .background(
+                RoundedRectangle(cornerRadius: containerBorderRadius)
+                    .fill(AppColors.Gray900.color)
+                    .stroke(AppColors.Gray700.color, lineWidth: 1)
+            )
+            
+            if (presentationPart.hint != nil) {
+                VStack(alignment: .leading, spacing: containerSpacing) {
+                    HStack {
+                        Text("Hints")
+                            .frame(
+                                alignment: .leading
+                            )
+                            .font(.system(size: containerTextSize.rawValue, weight: .medium))
+                            .foregroundStyle(AppColors.Gray400.color)
+                        Spacer()
+                        if (viewModel.hintsExpanded) {
+                            AppButton(action: {
+                                viewModel.hintsExpandTransitionState = 1
+                                withAnimation(.easeInOut(duration: 0.3)) {
+                                    self.viewModel.hintsExpandTransitionState = 0
+                                } completion: {
+                                    viewModel.hintsExpanded = false
+                                }
+                                HapticsImpactLight.impactOccurred()
+                            }) {
+                                HStack {
+                                    Text("Hide Hints")
+                                    Image(systemName: "chevron.down")
+                                }
+                            }
+                            .variant(.ghost)
+                            .paddingHorz(0)
+                            .paddingVert(0)
+                            .opacity(
+                                // Mimic opacity press animation, latter half. 0.1s latter. Transition animation takes 0.3s
+                                (min(viewModel.hintsExpandTransitionState * 3, 1)) * 0.7 + 0.3
+                            )
+                            .onAppear() {
+                                viewModel.animateExpand()
+                            }
+                        } else {
+                            AppButton(action: {
+                                viewModel.hintsExpanded = true
+                                HapticsImpactLight.impactOccurred()
+                            }) {
+                                HStack {
+                                    Text("Show Hints")
+                                    Image(systemName: "chevron.right")
+                                }
+                            }
+                            .variant(.ghost)
+                            .paddingHorz(0)
+                            .paddingVert(0)
+                            .opacity(
+                                // Mimic opacity press animation, latter half. 0.1s latter. Transition animation takes 0.3s
+                                (min(viewModel.hintsExpandTransitionState * 3, 1)) * 0.7 + 0.3
+                            )
+                            .onAppear() {
+                                viewModel.animateExpand()
+                            }
+                        }
+                    }
+                    
+                    if (viewModel.hintsExpanded) {
+                        TokenizedTextView(tokens: presentationPart.hint!)
+                            .font(.system(size: containerTextSize.rawValue, weight: .medium))
+                            .opacity(viewModel.appearTransitionState * viewModel.hintsExpandTransitionState * viewModel.pageTransitionState)
+                            .foregroundStyle(AppColors.Primary500.color)
+                    }
                 }
                 .frame(
                     maxWidth: .infinity,
                     maxHeight: .infinity,
                     alignment: .topLeading
                 )
-                .padding(.horizontal, 24)
-                .padding(.vertical, 24)
+                .padding(.horizontal, containerPadding)
+                .padding(.vertical, containerPadding)
                 .background(
-                    RoundedRectangle(cornerRadius: 16)
+                    RoundedRectangle(cornerRadius: containerBorderRadius)
                         .fill(AppColors.Gray900.color)
                         .stroke(AppColors.Gray700.color, lineWidth: 1)
                 )
-                
-                if (presentationPart.hint != nil) {
-                    VStack(alignment: .leading, spacing: 12) {
-                        HStack {
-                            Text("Hints")
-                                .frame(
-                                    alignment: .leading
-                                )
-                                .font(.system(size: AppFontSize.xl2.rawValue, weight: .medium))
-                                .foregroundStyle(AppColors.Gray400.color)
-                            Spacer()
-                            if (viewModel.hintsExpanded) {
-                                AppButton(action: {
-                                    viewModel.hintsExpandTransitionState = 1
-                                    withAnimation(.easeInOut(duration: 0.3)) {
-                                        self.viewModel.hintsExpandTransitionState = 0
-                                    } completion: {
-                                        viewModel.hintsExpanded = false
-                                    }
-                                    HapticsImpactLight.impactOccurred()
-                                }) {
-                                    HStack {
-                                        Text("Hide Hints")
-                                        Image(systemName: "chevron.down")
-                                    }
-                                }
-                                .variant(.ghost)
-                                .size(.large)
-                                .paddingHorz(0)
-                                .paddingVert(0)
-                                .opacity(
-                                    // Mimic opacity press animation, latter half. 0.1s latter. Transition animation takes 0.3s
-                                    (min(viewModel.hintsExpandTransitionState * 3, 1)) * 0.7 + 0.3
-                                )
-                                .onAppear() {
-                                    viewModel.animateExpand()
-                                }
-                            } else {
-                                AppButton(action: {
-                                    viewModel.hintsExpanded = true
-                                    HapticsImpactLight.impactOccurred()
-                                }) {
-                                    HStack {
-                                        Text("Show Hints")
-                                        Image(systemName: "chevron.right")
-                                    }
-                                }
-                                .variant(.ghost)
-                                .size(.large)
-                                .paddingHorz(0)
-                                .paddingVert(0)
-                                .opacity(
-                                    // Mimic opacity press animation, latter half. 0.1s latter. Transition animation takes 0.3s
-                                    (min(viewModel.hintsExpandTransitionState * 3, 1)) * 0.7 + 0.3
-                                )
-                                .onAppear() {
-                                    viewModel.animateExpand()
-                                }
-                            }
-                        }
-                        
-                        if (viewModel.hintsExpanded) {
-                            TokenizedTextView(tokens: presentationPart.hint!)
-                                .font(.system(size: AppFontSize.xl2.rawValue, weight: .medium))
-                                .opacity(viewModel.hintsExpandTransitionState * viewModel.appearTransitionState * viewModel.pageTransitionState)
-                                .foregroundStyle(AppColors.Primary500.color)
-                        }
-                    }
-                    .frame(
-                        maxWidth: .infinity,
-                        maxHeight: .infinity,
-                        alignment: .topLeading
-                    )
-                    .padding(.horizontal, 24)
-                    .padding(.vertical, 24)
-                    .background(
-                        RoundedRectangle(cornerRadius: 16)
-                            .fill(AppColors.Gray900.color)
-                            .stroke(AppColors.Gray700.color, lineWidth: 1)
-                    )
-                }
-            }
-            
-        }
-        .title(title)
-        .img("playground")
-
-        PresentationToolbar(
-            toolbarAppearTransitionState: viewModel.appearTransitionState,
-            size: .large
-        ) {
-            AppButton(action: {
-                viewModel.goToPage(newPage: page - 1)
-                HapticsImpactLight.impactOccurred()
-            }) {
-                HStack {
-                    Image(systemName: "arrow.left")
-                    Text("Back")
-                }
-                .foregroundStyle(AppColors.Primary50.color)
-            }
-            .variant(.ghost)
-            .size(.large)
-            .opacity(isFirstPage ? 0.3 : 1)
-            .disabled(isFirstPage || isPageTransitioning)
-            
-            Text("\(page + 1) / \(lastPage + 1)")
-                .font(.system(size: AppFontSize.xl.rawValue, weight: .medium))
-                .foregroundColor(AppColors.Gray400.color)
-            
-            AppButton(action: {
-                viewModel.goToPage(newPage: page + 1)
-                HapticsImpactLight.impactOccurred()
-            }) {
-                HStack {
-                    Text("Next")
-                    Image(systemName: "arrow.right")
-                }
-                .foregroundStyle(AppColors.Primary50.color)
-            }
-            .variant(.ghost)
-            .size(.large)
-            .opacity(isLastPage ? 0.3 : 1)
-            .disabled(isLastPage || isPageTransitioning)
-            
-            if (page >= lastPage) {
-                AppButton(action: {
-                    guard let goTo else {
-                        return
-                    }
-                    goTo(.Present)
-                    HapticsImpactLight.impactOccurred()
-                }) {
-                    Text("Start")
-                }
-                .size(.large)
-                .opacity(
-                    nPage <= presentationParts.count ? viewModel.pageTransitionState : 1
-                )
-            } else {
-                AppButton(action: {
-                    guard let goTo else {
-                        return
-                    }
-                    goTo(.Present)
-                    HapticsImpactLight.impactOccurred()
-                }) {
-                    Text("Start")
-                }
-                .variant(.ghost)
-                .size(.large)
-                .opacity(
-                    nPage >= presentationParts.count ? viewModel.pageTransitionState : 1
-                )
-            }
-            
-        }
-        
-        PresentationViewCloseButton(onClose: {
-            guard let onClose else {
-                return
-            }
-            onClose()
-        })
-    }
-    
-}
-
-struct PresentationPrepareCompactView: View {
-    let title: String;
-    let presentationParts: [PresentationPart];
-    @Binding var viewModel: PresentationPrepareViewModel
-
-    var goTo: ((_ viewType: PresentationViewType) -> Void)?
-    var onClose: (() -> Void)?
-    
-    var body: some View {
-        let page = viewModel.page
-        let nPage = viewModel.nPage
-        let isPageTransitioning = viewModel.isPageTransitioning
-
-        let presentationPart = presentationParts[page]
-        
-        let lastPage = (presentationParts.count - 1)
-        let isFirstPage = nPage <= 0
-        let isLastPage = nPage >= lastPage
-
-        PresentationCompactLayoutView(
-            imageAppearAnimationState: viewModel.appearTransitionState * viewModel.pageTransitionState
-        ) {
-            VStack(spacing: 16) {
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Context")
-                        .frame(
-                            alignment: .leading
-                        )
-                        .font(.system(size: AppFontSize.lg.rawValue, weight: .medium))
-                        .foregroundStyle(AppColors.Gray400.color)
-                    TokenizedTextView(tokens: presentationPart.content)
-                        .font(.system(size: AppFontSize.lg.rawValue, weight: .medium))
-                        .opacity(viewModel.appearTransitionState * viewModel.pageTransitionState)
-                }
-                .frame(
-                    maxWidth: .infinity,
-                    maxHeight: .infinity,
-                    alignment: .topLeading
-                )
-                .padding(.horizontal, 12)
-                .padding(.vertical, 12)
-                .background(
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(AppColors.Gray900.color)
-                        .stroke(AppColors.Gray700.color, lineWidth: 1)
-                )
-                
-                if (presentationPart.hint != nil) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack {
-                            Text("Hints")
-                                .frame(
-                                    alignment: .leading
-                                )
-                                .font(.system(size: AppFontSize.lg.rawValue, weight: .medium))
-                                .foregroundStyle(AppColors.Gray400.color)
-                            Spacer()
-                            if (viewModel.hintsExpanded) {
-                                AppButton(action: {
-                                    viewModel.hintsExpandTransitionState = 1
-                                    withAnimation(.easeInOut(duration: 0.3)) {
-                                        self.viewModel.hintsExpandTransitionState = 0
-                                    } completion: {
-                                        viewModel.hintsExpanded = false
-                                    }
-                                    HapticsImpactLight.impactOccurred()
-                                }) {
-                                    HStack {
-                                        Text("Hide Hints")
-                                        Image(systemName: "chevron.down")
-                                    }
-                                }
-                                .variant(.ghost)
-                                .paddingHorz(0)
-                                .paddingVert(0)
-                                .opacity(
-                                    // Mimic opacity press animation, latter half. 0.1s latter. Transition animation takes 0.3s
-                                    (min(viewModel.hintsExpandTransitionState * 3, 1)) * 0.7 + 0.3
-                                )
-                                .onAppear() {
-                                    viewModel.animateExpand()
-                                }
-                            } else {
-                                AppButton(action: {
-                                    viewModel.hintsExpanded = true
-                                    HapticsImpactLight.impactOccurred()
-                                }) {
-                                    HStack {
-                                        Text("Show Hints")
-                                        Image(systemName: "chevron.right")
-                                    }
-                                }
-                                .variant(.ghost)
-                                .paddingHorz(0)
-                                .paddingVert(0)
-                                .opacity(
-                                    // Mimic opacity press animation, latter half. 0.1s latter. Transition animation takes 0.3s
-                                    (min(viewModel.hintsExpandTransitionState * 3, 1)) * 0.7 + 0.3
-                                )
-                                .onAppear() {
-                                    viewModel.animateExpand()
-                                }
-                            }
-                        }
-                        
-                        if (viewModel.hintsExpanded) {
-                            TokenizedTextView(tokens: presentationPart.hint!)
-                                .font(.system(size: AppFontSize.lg.rawValue, weight: .medium))
-                                .opacity(viewModel.appearTransitionState * viewModel.hintsExpandTransitionState * viewModel.pageTransitionState)
-                                .foregroundStyle(AppColors.Primary500.color)
-                        }
-                    }
-                    .frame(
-                        maxWidth: .infinity,
-                        maxHeight: .infinity,
-                        alignment: .topLeading
-                    )
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 12)
-                    .background(
-                        RoundedRectangle(cornerRadius: 16)
-                            .fill(AppColors.Gray900.color)
-                            .stroke(AppColors.Gray700.color, lineWidth: 1)
-                    )
-                }
             }
         }
-        .title(title)
-        .img("playground")
-
-        PresentationToolbar(
-            toolbarAppearTransitionState: viewModel.appearTransitionState,
-            size: .small
-        ) {
-            AppButton(action: {
-                viewModel.goToPage(newPage: page - 1)
-                HapticsImpactLight.impactOccurred()
-            }) {
-                HStack {
-                    Image(systemName: "arrow.left")
-                }
-                .foregroundStyle(AppColors.Primary50.color)
-            }
-            .size(.small)
-            .variant(.ghost)
-            .opacity(isFirstPage ? 0.3 : 1)
-            .disabled(isFirstPage || isPageTransitioning)
-            
-            Text("\(page + 1) / \(lastPage + 1)")
-                .font(.system(size: AppFontSize.lg.rawValue, weight: .medium))
-                .foregroundColor(AppColors.Gray400.color)
-            
-            AppButton(action: {
-                viewModel.goToPage(newPage: page + 1)
-                HapticsImpactLight.impactOccurred()
-            }) {
-                HStack {
-                    Image(systemName: "arrow.right")
-                }
-                .foregroundStyle(AppColors.Primary50.color)
-            }
-            .size(.small)
-            .variant(.ghost)
-            .opacity(isLastPage ? 0.3 : 1)
-            .disabled(isLastPage || isPageTransitioning)
-            
-            if (page >= lastPage) {
-                AppButton(action: {
-                    guard let goTo else {
-                        return
-                    }
-                    goTo(.Present)
-                    HapticsImpactLight.impactOccurred()
-                }) {
-                    Text("Start")
-                }
-                .opacity(
-                    nPage <= presentationParts.count ? viewModel.pageTransitionState : 1
-                )
-            } else {
-                AppButton(action: {
-                    guard let goTo else {
-                        return
-                    }
-                    goTo(.Present)
-                    HapticsImpactLight.impactOccurred()
-                }) {
-                    Text("Start")
-                }
-                .variant(.ghost)
-                .opacity(
-                    nPage >= presentationParts.count ? viewModel.pageTransitionState : 1
-                )
-            }
-        }
-        
-        PresentationViewCloseButton(onClose: {
-            guard let onClose else {
-                return
-            }
-            onClose()
-        })
     }
 }
 
@@ -473,27 +172,117 @@ struct PresentationPrepareView: View {
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
     
     var body: some View {
-        if (horizontalSizeClass == .compact) {
-            PresentationPrepareCompactView(
-               title: title,
-               presentationParts: presentationParts,
-               viewModel: $viewModel,
-               goTo: goTo,
-               onClose: onClose
-            ).onAppear() {
-               animateIn()
-           }
+        let page = viewModel.page
+        let nPage = viewModel.nPage
+        let isPageTransitioning = viewModel.isPageTransitioning
+
+        let presentationPart = presentationParts[page]
+        
+        let lastPage = (presentationParts.count - 1)
+        let isFirstPage = nPage <= 0
+        let isLastPage = nPage >= lastPage
+        
+        let buttonSize: AppButtonSize = horizontalSizeClass == .regular ? .large : .small
+        let toolbarSize: PresentationToolbarSize = horizontalSizeClass == .regular ? .large : .small
+
+        if horizontalSizeClass == .regular {
+            PresentationRegularLayoutView(
+                imageAppearAnimationState: viewModel.appearTransitionState * viewModel.pageTransitionState
+            ) {
+                PresentationPrepareContentView(
+                    size: .large,
+                    presentationPart: presentationPart,
+                    viewModel: $viewModel
+                )
+            }
+            .title(title)
+            .img("playground")
         } else {
-             PresentationPrepareRegularView(
-                title: title,
-                presentationParts: presentationParts,
-                viewModel: $viewModel,
-                goTo: goTo,
-                onClose: onClose
-             ).onAppear() {
-                animateIn()
+            PresentationCompactLayoutView(
+                imageAppearAnimationState: viewModel.appearTransitionState * viewModel.pageTransitionState
+            ) {
+                PresentationPrepareContentView(
+                    size: .small,
+                    presentationPart: presentationPart,
+                    viewModel: $viewModel
+                )
+            }
+            .title(title)
+            .img("playground")
+        }
+
+        PresentationToolbar(
+            toolbarAppearTransitionState: viewModel.appearTransitionState,
+            size: toolbarSize
+        ) {
+            AppButton(action: {
+                viewModel.goToPage(newPage: page - 1)
+                HapticsImpactLight.impactOccurred()
+            }) {
+                HStack {
+                    Image(systemName: "arrow.left")
+                    if (horizontalSizeClass == .regular) {
+                        Text("Back")
+                    }
+                }
+                .foregroundStyle(AppColors.Primary50.color)
+            }
+            .variant(.ghost)
+            .size(buttonSize)
+            .opacity(isFirstPage ? 0.3 : 1)
+            .disabled(isFirstPage || isPageTransitioning)
+            
+            Text("\(page + 1) / \(lastPage + 1)")
+                .font(.system(size: AppFontSize.lg.rawValue, weight: .medium))
+                .foregroundColor(AppColors.Gray400.color)
+            
+            AppButton(action: {
+                viewModel.goToPage(newPage: page + 1)
+                HapticsImpactLight.impactOccurred()
+            }) {
+                HStack {
+                    if (horizontalSizeClass == .regular) {
+                        Text("Next")
+                    }
+                    Image(systemName: "arrow.right")
+                }
+                .foregroundStyle(AppColors.Primary50.color)
+            }
+            .variant(.ghost)
+            .size(buttonSize)
+            .opacity(isLastPage ? 0.3 : 1)
+            .disabled(isLastPage || isPageTransitioning)
+            
+            if (page >= lastPage) {
+                AppButton(action: {
+                    goTo(viewType: .Present)
+                    HapticsImpactLight.impactOccurred()
+                }) {
+                    Text("Start")
+                }
+                .size(buttonSize)
+                .opacity(
+                    nPage <= presentationParts.count ? viewModel.pageTransitionState : 1
+                )
+            } else {
+                AppButton(action: {
+                    goTo(viewType: .Present)
+                    HapticsImpactLight.impactOccurred()
+                }) {
+                    Text("Start")
+                }
+                .variant(.ghost)
+                .size(buttonSize)
+                .opacity(
+                    nPage >= presentationParts.count ? viewModel.pageTransitionState : 1
+                )
             }
         }
+        
+        PresentationViewCloseButton(onClose: self.onClose)
+            .onAppear() {
+                animateIn()
+            }
     }
     
     func onClose() {

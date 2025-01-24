@@ -149,7 +149,8 @@ struct PresentationView: View {
     let title: String;
     
     @State var viewType: PresentationViewType = .Overview
-    
+    @StateObject var speechRecognizer = SpeechRecgonizer()
+
     var body: some View {
         ZStack(alignment: .topLeading) {
 //            PresentationPrepareView(
@@ -173,7 +174,8 @@ struct PresentationView: View {
                 PresentationPresentView(
                     title: title,
                     presentationParts: AppPresentations.PlaygroundObservationsPresentation.parts,
-                    viewType: $viewType
+                    viewType: $viewType,
+                    speechRecognizer: speechRecognizer
                 )
             }
         }
