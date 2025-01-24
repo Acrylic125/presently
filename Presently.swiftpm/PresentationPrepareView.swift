@@ -168,6 +168,7 @@ struct PresentationPrepareView: View {
 
     @Binding var viewType: PresentationViewType
     @State var viewModel = PresentationPrepareViewModel()
+    @ObservedObject var speechRecognizer: SpeechRecgonizer
 
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
     
@@ -255,8 +256,9 @@ struct PresentationPrepareView: View {
             
             if (page >= lastPage) {
                 AppButton(action: {
-                    goTo(viewType: .Present)
                     HapticsImpactLight.impactOccurred()
+                    speechRecognizer.start()
+                    goTo(viewType: .Present)
                 }) {
                     Text("Start")
                 }
@@ -267,6 +269,7 @@ struct PresentationPrepareView: View {
             } else {
                 AppButton(action: {
                     goTo(viewType: .Present)
+                    speechRecognizer.start()
                     HapticsImpactLight.impactOccurred()
                 }) {
                     Text("Start")

@@ -51,7 +51,8 @@ struct PresentationOverviewView: View {
     
     @Binding var viewType: PresentationViewType
     @State var viewModel = PresentationOverviewViewModel()
-    
+    @ObservedObject var speechRecognizer: SpeechRecgonizer
+
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
     
     var body: some View {
@@ -100,6 +101,7 @@ struct PresentationOverviewView: View {
             .size(buttonSize)
             
             AppButton(action: {
+                speechRecognizer.start()
                 goTo(viewType: .Present)
                 HapticsImpactLight.impactOccurred()
             }) {

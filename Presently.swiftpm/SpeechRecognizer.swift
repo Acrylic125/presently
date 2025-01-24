@@ -59,27 +59,37 @@ final public class SpeechRecgonizer: ObservableObject {
         self.state = state
     }
     
-    func start() {
+    @MainActor private func setError(error: Error) {
+        self.state = .inactive
+        self.error = error
+    }
+
+    func start(shouldReset: Bool = true) {
         if let task = self.startStopTask {
             task.cancel()
         }
-
+        
         self.startStopTask = Task {
+            if (shouldReset) {
+                await reset()
+            }
+            
             if let audioEngine = self.audioEngine, audioEngine.isRunning {
                 print("Audio engine is already running. Please stop.")
                 return
             }
             
             await self.setState(state: .starting)
+            try? await Task.sleep(nanoseconds: 5_000_000_000)
             let audioEngine = AVAudioEngine()
             let audioSession = AVAudioSession.sharedInstance()
             do {
                 try audioSession.setCategory(.record, mode: .measurement, options: .duckOthers)
                 try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
+                throw RecognizerError.recognizerStartFailed
             } catch {
-                self.error = error
-                self.state = .inactive
                 print("Couldn't configure the audio session properly")
+                await self.setError(error: error)
                 return
             }
             
@@ -88,8 +98,7 @@ final public class SpeechRecgonizer: ObservableObject {
             request.shouldReportPartialResults = true
             guard let speechRecognizer = speechRecognizer, speechRecognizer.isAvailable else {
                 print(RecognizerError.recognizerStartFailed.message)
-                self.error = RecognizerError.recognizerStartFailed
-                self.state = .inactive
+                await self.setError(error: RecognizerError.recognizerStartFailed)
                 return
             }
             
@@ -102,10 +111,9 @@ final public class SpeechRecgonizer: ObservableObject {
             do {
                 try audioEngine.start()
             } catch {
-                self.error = error
                 print("Could not start audio engine!")
                 audioEngine.stop()
-                self.state = .inactive
+                await self.setError(error: error)
                 return
             }
             
@@ -113,6 +121,7 @@ final public class SpeechRecgonizer: ObservableObject {
                 self?.recognitionHandler(audioEngine: audioEngine, result: result, error: error)
             })
             
+            print("Started")
             await self.setState(state: .active)
             self.audioEngine = audioEngine
             self.audioSession = audioSession
@@ -125,15 +134,27 @@ final public class SpeechRecgonizer: ObservableObject {
             task.cancel()
         }
         self.startStopTask = Task {
-            await self.setState(state: .stopping)
-            recognitionTask?.cancel()
-            audioEngine?.stop()
-            
-            audioEngine = nil
-            recognitionRequest = nil
-            recognitionTask = nil
-            await self.setState(state: .inactive)
+            await reset()
+            //            await self.setState(state: .stopping)
+//            recognitionTask?.cancel()
+//            audioEngine?.stop()
+//            
+//            audioEngine = nil
+//            recognitionRequest = nil
+//            recognitionTask = nil
+//            await self.setState(state: .inactive)
         }
+    }
+    
+    private func reset() async {
+        await self.setState(state: .stopping)
+        recognitionTask?.cancel()
+        audioEngine?.stop()
+        
+        audioEngine = nil
+        recognitionRequest = nil
+        recognitionTask = nil
+        await self.setState(state: .inactive)
     }
     
 //    @objc private func handleInterruption(notification: Notification) {
@@ -163,15 +184,20 @@ final public class SpeechRecgonizer: ObservableObject {
     }
     
     private func transcribe(_ error: Error) {
-        var errorMessage = ""
-        if let error = error as? RecognizerError {
-            errorMessage += error.message
-        } else {
-            errorMessage += error.localizedDescription
-        }
+        let errorMessage = asErrorMessage(error: error)
         print("Error \(errorMessage)!")
     }
     
+}
+
+func asErrorMessage(error: Error) -> String {
+    var errorMessage = ""
+    if let error = error as? RecognizerError {
+        errorMessage += error.message
+    } else {
+        errorMessage += error.localizedDescription
+    }
+    return errorMessage
 }
 
 /// A helper for transcribing speech to text using SFSpeechRecognizer and AVAudioEngine.

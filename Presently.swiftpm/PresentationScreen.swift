@@ -153,22 +153,19 @@ struct PresentationView: View {
 
     var body: some View {
         ZStack(alignment: .topLeading) {
-//            PresentationPrepareView(
-//                title: title,
-//                presentationParts: AppPresentations.PlaygroundObservationsPresentation.parts,
-//                viewType: $viewType
-//            )
             if (viewType == .Overview) {
                 PresentationOverviewView(
                     title: title,
                     context: AppPresentations.PlaygroundObservationsPresentation.context,
-                    viewType: $viewType
+                    viewType: $viewType,
+                    speechRecognizer: speechRecognizer
                 )
             } else if (viewType == .Prepare) {
                 PresentationPrepareView(
                     title: title,
                     presentationParts: AppPresentations.PlaygroundObservationsPresentation.parts,
-                    viewType: $viewType
+                    viewType: $viewType,
+                    speechRecognizer: speechRecognizer
                 )
             } else {
                 PresentationPresentView(

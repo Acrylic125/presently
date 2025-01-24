@@ -8,7 +8,10 @@ final class PresentationPresentViewModel {
     var appearTransitionState: Double = 0
     
     var vxTransitionState: Double = 0
-
+    
+    var showStatusViewAppearState: Double = 0
+    var shouldShowSttusView: Bool = false
+    
     var hintsExpanded = false
     var hintsExpandTransitionState: Double = 1
     
@@ -106,6 +109,144 @@ struct PresentationPresentVX: View {
     }
 }
 
+struct PresentstionPresentStatusView: View {
+    let size: AppContentSize
+    let state: SpeechRecognizerState
+    let error: Error?
+    
+    var body: some View {
+        
+        if (state == .inactive) {
+            let buttonSize: AppButtonSize = size == .large ? .large : .small
+            
+            let spacing: CGFloat = size == .large ? 24 : 12
+            let textSpacing: CGFloat = size == .large ? 12 : 8
+            let buttonSpacing: CGFloat = size == .large ? 16 : 12
+            let iconSize: CGFloat = size == .large ? 48 : 32
+            
+            let containerPadding: CGFloat = size == .large ? 24 : 12
+            let containerBorderRadius: CGFloat = size == .large ? 16 : 12
+
+            let headerFontSize: AppFontSize = size == .large ? .xl3 : .xl
+            let textFontSize: AppFontSize = size == .large ? .xl : .lg
+
+            VStack {
+                Spacer()
+                VStack(spacing: spacing) {
+                    VStack {
+                        Image(systemName: "exclamationmark.triangle")
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .foregroundStyle(AppColors.Red400.color)
+                    }
+                    .frame(
+                        height: iconSize
+                    )
+                    .clipped()
+                    
+                    VStack(spacing: textSpacing) {
+                        if let error {
+                            Text("Something went wrong!")
+                                .foregroundStyle(AppColors.Red400.color)
+                                .font(.system(size: headerFontSize.rawValue, weight: .bold))
+                                .multilineTextAlignment(.center)
+                            Text(asErrorMessage(error: error))
+                                .foregroundStyle(AppColors.Gray100.color)
+                                .font(.system(size: textFontSize.rawValue, weight: .medium))
+                                .multilineTextAlignment(.center)
+                        } else {
+                            Text("Presentation paused!")
+                                .foregroundStyle(AppColors.Primary500.color)
+                                .font(.system(size: headerFontSize.rawValue, weight: .bold))
+                                .multilineTextAlignment(.center)
+                            Text("The Presentation is currently not being recorded.")
+                                .foregroundStyle(AppColors.Gray100.color)
+                                .font(.system(size: textFontSize.rawValue, weight: .medium))
+                                .multilineTextAlignment(.center)
+                        }
+                    }
+                    
+                    HStack(spacing: buttonSpacing) {
+                        AppButton(action: {}) {
+                            Text("Back")
+                        }
+                        .size(buttonSize)
+                        .variant(.ghost)
+                        
+                        AppButton(action: {}) {
+                            Text("Retry")
+                        }
+                        .size(buttonSize)
+                    }
+                    
+                }
+                .frame(
+                    maxWidth: 480
+                )
+                .padding(.horizontal, containerPadding)
+                .padding(.top, containerPadding + spacing)
+                .padding(.bottom, containerPadding)
+                .background(
+                    RoundedRectangle(cornerRadius: containerBorderRadius)
+                        .fill(AppColors.Gray950.color)
+                        .stroke(AppColors.Red400.color, lineWidth: 1)
+                )
+                Spacer()
+            }
+            .frame(
+                maxWidth: .infinity,
+                maxHeight: .infinity
+            )
+            .padding(24)
+            .background(
+                .black.opacity(0.5)
+            )
+        } else if (state == .starting) {
+            let spacing: CGFloat = size == .large ? 40 : 32
+            let textSpacing: CGFloat = size == .large ? 12 : 8
+
+            let loaderSize: Double = size == .large ? 80 : 64
+            let headerFontSize: AppFontSize = size == .large ? .xl3 : .xl
+            let textFontSize: AppFontSize = size == .large ? .xl : .lg
+            
+            VStack {
+                Spacer()
+                VStack(spacing: spacing) {
+                    LoadingSpinner(size: loaderSize)
+                    
+                    VStack(spacing: textSpacing) {
+                        Text("Please Stand By")
+                            .foregroundStyle(AppColors.Gray50.color)
+                            .font(.system(size: headerFontSize.rawValue, weight: .bold))
+                            .frame(
+                                maxWidth: 320,
+                                alignment: .center
+                            )
+                        Text("We are setting up your mic.")
+                            .foregroundStyle(AppColors.Gray100.color)
+                            .font(.system(size: textFontSize.rawValue, weight: .medium))
+                            .frame(
+                                maxWidth: 320,
+                                alignment: .center
+                            )
+                    }
+                }
+                .frame(
+                    maxWidth: .infinity
+                )
+                Spacer()
+            }
+            .frame(
+                maxWidth: .infinity,
+                maxHeight: .infinity
+            )
+            .background(
+                .black.opacity(0.5)
+            )
+        }
+    }
+}
+
 struct PresentationPresentContentView: View {
     let size: AppContentSize
     let presentationPart: PresentationPart
@@ -116,7 +257,7 @@ struct PresentationPresentContentView: View {
         let containerSpacing: CGFloat = size == .large ? 12 : 8
         let containerBorderRadius: CGFloat = size == .large ? 16 : 8
         let containerTextSize: AppFontSize = size == .large ? .xl2 : .lg
-
+        
         VStack(spacing: size == .large ? 24 : 16) {
             VStack(alignment: .leading, spacing: containerSpacing) {
                 Text("Context")
@@ -245,6 +386,7 @@ struct PresentationPresentView: View {
         let isFirstPage = nPage <= 0
         let isLastPage = nPage >= lastPage
         
+        let appContentSize: AppContentSize = horizontalSizeClass == .regular ? .large : .small
         let buttonSize: AppButtonSize = horizontalSizeClass == .regular ? .large : .small
         let toolbarSize: PresentationToolbarSize = horizontalSizeClass == .regular ? .large : .small
         
@@ -344,9 +486,27 @@ struct PresentationPresentView: View {
             }
         }
         
+        if viewModel.shouldShowSttusView {
+            PresentstionPresentStatusView(
+                size: appContentSize,
+                state: speechRecognizer.state,
+                error: speechRecognizer.error
+            )
+            .opacity(self.viewModel.showStatusViewAppearState)
+            .onAppear() {
+                viewModel.showStatusViewAppearState = 0
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    self.viewModel.showStatusViewAppearState = 1
+                }
+            }
+        }
+        
         PresentationViewCloseButton(onClose: self.onClose)
             .onAppear() {
                 animateIn()
+            }
+            .onDisappear() {
+                speechRecognizer.stop()
             }
     }
     
@@ -363,11 +523,15 @@ struct PresentationPresentView: View {
             viewModel.appearTransitionWorkItem!.cancel()
         }
         
+        viewModel.shouldShowSttusView = false
+        
         viewModel.vxTransitionState = 0
         viewModel.appearTransitionState = 0
         viewModel.appearTransitionWorkItem = DispatchWorkItem {
             withAnimation(.easeIn(duration: 0.3)) {
                 self.viewModel.appearTransitionState = 1
+            } completion: {
+                viewModel.shouldShowSttusView = true
             }
             
             withAnimation(.easeIn(duration: 0.75)) {
@@ -388,6 +552,7 @@ struct PresentationPresentView: View {
             withAnimation(.easeOut(duration: 0.3)) {
                 self.viewModel.appearTransitionState = 0
                 self.viewModel.vxTransitionState = 0
+                self.viewModel.showStatusViewAppearState = 0
             } completion: {
                 self.viewType = viewType
             }
@@ -395,23 +560,4 @@ struct PresentationPresentView: View {
         DispatchQueue.main.async(execute: viewModel.appearTransitionWorkItem!)
     }
     
-//    private func startScrum() {
-////        scrumTimer.reset(lengthInMinutes: scrum.lengthInMinutes, attendees: scrum.attendees)
-////        scrumTimer.speakerChangedAction = {
-////            player.seek(to: .zero)
-////            player.play()
-////        }
-//        speechRecognizer.resetTranscript()
-//        speechRecognizer.startTranscribing()
-////        scrumTimer.startScrum()
-//    }
-
-//    private func endScrum() {
-//        speechRecognizer.stopTranscribing()
-//
-////        scrumTimer.stopScrum()
-////        let newHistory = History(attendees: scrum.attendees)
-////        scrum.history.insert(newHistory, at: 0)
-//    }
-
 }
