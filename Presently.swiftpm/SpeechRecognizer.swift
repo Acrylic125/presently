@@ -13,6 +13,7 @@ enum RecognizerError: Error {
     case notAuthorizedToRecognize
     case notPermittedToRecord
     case recognizerIsUnavailable
+    case recognizerStartFailed
     
     var message: String {
         switch self {
@@ -20,6 +21,7 @@ enum RecognizerError: Error {
         case .notAuthorizedToRecognize: return "Not authorized to recognize speech"
         case .notPermittedToRecord: return "Not permitted to record audio"
         case .recognizerIsUnavailable: return "Recognizer is unavailable"
+        case .recognizerStartFailed: return "Failed to start speech recognizer"
         }
     }
 }
@@ -31,9 +33,11 @@ final public class SpeechRecgonizer: ObservableObject {
     private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
     private var recognitionTask: SFSpeechRecognitionTask?
     
-    @Published var transcript: String = ""
     @Published var transcriptions: [SFTranscription] = []
-    @Published var isProcessing: Bool = false
+    @Published var state: SpeechRecognizerState = .inactive
+    @Published var error: Error?
+    
+    private var startStopTask: Task<(), Error>?
     
     init() {
         Task {
@@ -51,54 +55,93 @@ final public class SpeechRecgonizer: ObservableObject {
         self.speechRecognizer = SFSpeechRecognizer(locale: Locale(identifier: "en-US"))
     }
     
+    @MainActor private func setState(state: SpeechRecognizerState) {
+        self.state = state
+    }
+    
     func start() {
-        let audioEngine = AVAudioEngine()
-        let audioSession = AVAudioSession.sharedInstance()
-        do {
-            try audioSession.setCategory(.record, mode: .measurement, options: .duckOthers)
-            try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
-        } catch {
-            print("Couldn't configure the audio session properly")
+        if let task = self.startStopTask {
+            task.cancel()
         }
-        let request = SFSpeechAudioBufferRecognitionRequest()
-        request.addsPunctuation = true
-        request.shouldReportPartialResults = true
-        guard let speechRecognizer = speechRecognizer, speechRecognizer.isAvailable else {
-            assertionFailure("Unable to start the speech recognition!")
-            return
-        }
-        
-        let inputNode = audioEngine.inputNode
-        let recordingFormat = inputNode.outputFormat(forBus: 0)
-        inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { (buffer: AVAudioPCMBuffer, when: AVAudioTime) in
-            request.append(buffer)
-        }
-        audioEngine.prepare()
-        do {
-            try audioEngine.start()
-        } catch {
-            print("Could not start audio engine!")
-        }
-        
-        self.recognitionTask = speechRecognizer.recognitionTask(with: request, resultHandler: { [weak self] result, error in
-            self?.recognitionHandler(audioEngine: audioEngine, result: result, error: error)
-        })
 
-        self.audioEngine = audioEngine
-        self.audioSession = audioSession
-        self.recognitionRequest = request
+        self.startStopTask = Task {
+            if let audioEngine = self.audioEngine, audioEngine.isRunning {
+                print("Audio engine is already running. Please stop.")
+                return
+            }
+            
+            await self.setState(state: .starting)
+            let audioEngine = AVAudioEngine()
+            let audioSession = AVAudioSession.sharedInstance()
+            do {
+                try audioSession.setCategory(.record, mode: .measurement, options: .duckOthers)
+                try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
+            } catch {
+                self.error = error
+                self.state = .inactive
+                print("Couldn't configure the audio session properly")
+                return
+            }
+            
+            let request = SFSpeechAudioBufferRecognitionRequest()
+            request.addsPunctuation = true
+            request.shouldReportPartialResults = true
+            guard let speechRecognizer = speechRecognizer, speechRecognizer.isAvailable else {
+                print(RecognizerError.recognizerStartFailed.message)
+                self.error = RecognizerError.recognizerStartFailed
+                self.state = .inactive
+                return
+            }
+            
+            let inputNode = audioEngine.inputNode
+            let recordingFormat = inputNode.outputFormat(forBus: 0)
+            inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { (buffer: AVAudioPCMBuffer, when: AVAudioTime) in
+                request.append(buffer)
+            }
+            audioEngine.prepare()
+            do {
+                try audioEngine.start()
+            } catch {
+                self.error = error
+                print("Could not start audio engine!")
+                audioEngine.stop()
+                self.state = .inactive
+                return
+            }
+            
+            self.recognitionTask = speechRecognizer.recognitionTask(with: request, resultHandler: { [weak self] result, error in
+                self?.recognitionHandler(audioEngine: audioEngine, result: result, error: error)
+            })
+            
+            await self.setState(state: .active)
+            self.audioEngine = audioEngine
+            self.audioSession = audioSession
+            self.recognitionRequest = request
+        }
     }
     
     func stop() {
-        reset()
+        if let task = self.startStopTask {
+            task.cancel()
+        }
+        self.startStopTask = Task {
+            await self.setState(state: .stopping)
+            recognitionTask?.cancel()
+            audioEngine?.stop()
+            
+            audioEngine = nil
+            recognitionRequest = nil
+            recognitionTask = nil
+            await self.setState(state: .inactive)
+        }
     }
     
-    @objc private func handleInterruption(notification: Notification) {
-        if let audioEngine = self.audioEngine {
-            print("Is running? \(audioEngine.isRunning )")
-        }
-        print("Notified!")
-    }
+//    @objc private func handleInterruption(notification: Notification) {
+//        if let audioEngine = self.audioEngine {
+//            print("Is running? \(audioEngine.isRunning )")
+//        }
+//        print("Notified!")
+//    }
 
     private func recognitionHandler(audioEngine: AVAudioEngine, result: SFSpeechRecognitionResult?, error: Error?) {
         let receivedFinalResult = result?.isFinal ?? false
@@ -113,22 +156,10 @@ final public class SpeechRecgonizer: ObservableObject {
             transcribe(result.bestTranscription.formattedString, result.transcriptions)
         }
     }
-
-    private func reset() {
-        recognitionTask?.cancel()
-        audioEngine?.stop()
-        
-        audioEngine = nil
-        recognitionRequest = nil
-        recognitionTask = nil
-    }
     
     private func transcribe(_ message: String, _ transcriptions: [SFTranscription] ) {
-        transcript = message
-        print(transcript)
+        print(message)
         self.transcriptions = transcriptions
-        //        Task { @MainActor in
-//        }
     }
     
     private func transcribe(_ error: Error) {
@@ -139,11 +170,7 @@ final public class SpeechRecgonizer: ObservableObject {
             errorMessage += error.localizedDescription
         }
         print("Error \(errorMessage)!")
-//        transcript = "<< \(errorMessage) >>"
-//        Task { @MainActor [errorMessage] in
-//        }
     }
-
     
 }
 

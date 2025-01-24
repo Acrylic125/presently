@@ -124,7 +124,7 @@ struct PresentationPresentRegularView: View {
         let lastPage = (presentationParts.count - 1)
         let isFirstPage = nPage <= 0
         let isLastPage = nPage >= lastPage
-
+        
         PresentationPresentVX(appearVXTransitionState: viewModel.vxTransitionState)
         
         PresentationRegularLayoutView(
@@ -306,6 +306,44 @@ struct PresentationPresentRegularView: View {
             
         }
         
+        VStack {
+            Spacer()
+            VStack(spacing: 40) {
+//                ProgressView()
+//                    .progressViewStyle(CircularProgressViewStyle(tint: AppColors.Primary500.color))
+//                    .scaleEffect(12)
+                LoadingSpinner(size: 80)
+                
+                VStack(spacing: 12) {
+                    Text("Please Stand By")
+                        .foregroundStyle(AppColors.Gray50.color)
+                        .font(.system(size: AppFontSize.xl3.rawValue, weight: .bold))
+                        .frame(
+                            maxWidth: 320,
+                            alignment: .center
+                        )
+                    Text("We are setting up your mic.")
+                        .foregroundStyle(AppColors.Gray100.color)
+                        .font(.system(size: AppFontSize.xl.rawValue, weight: .medium))
+                        .frame(
+                            maxWidth: 320,
+                            alignment: .center
+                        )
+                }
+            }
+            .frame(
+                maxWidth: .infinity
+            )
+            Spacer()
+        }
+        .frame(
+            maxWidth: .infinity,
+            maxHeight: .infinity
+        )
+        .background(
+            .black.opacity(0.5)
+        )
+
         PresentationViewCloseButton(onClose: {
             onClose?()
         })
@@ -316,8 +354,10 @@ struct PresentationPresentRegularView: View {
 struct PresentationPresentCompactView: View {
     let title: String;
     let presentationParts: [PresentationPart];
+    
     @Binding var viewModel: PresentationPresentViewModel
-
+//    @ObservedObject var speechRecognizer: SpeechRecgonizer
+    
     var goTo: ((_ viewType: PresentationViewType) -> Void)?
     var onClose: (() -> Void)?
     
