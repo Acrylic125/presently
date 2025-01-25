@@ -10,6 +10,7 @@ struct TokenizedTextView: View {
         }
         .fixedSize(horizontal: false, vertical: true)
         .frame(maxHeight: .infinity)
+        .lineSpacing(4)
     }
 }
 
@@ -141,7 +142,7 @@ struct PresentationViewCloseButton: View {
 }
 
 enum PresentationViewType {
-    case Overview, Prepare, Present
+    case Overview, Prepare, Present, Results
 }
 
 struct PresentationView: View {
@@ -166,6 +167,10 @@ struct PresentationView: View {
                     presentationParts: AppPresentations.PlaygroundObservationsPresentation.parts,
                     viewType: $viewType,
                     speechRecognizer: speechRecognizer
+                )
+            } else if (viewType == .Results) {
+                ResultsView(
+                    title: title
                 )
             } else {
                 PresentationPresentView(

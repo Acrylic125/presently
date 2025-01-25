@@ -257,14 +257,24 @@ struct PresentationPresentContentView: View {
         let containerSpacing: CGFloat = size == .large ? 12 : 8
         let containerBorderRadius: CGFloat = size == .large ? 16 : 8
         let containerTextSize: AppFontSize = size == .large ? .xl2 : .lg
-        
-        VStack(spacing: size == .large ? 24 : 16) {
+        let titleTextSize: AppFontSize = size == .large ? .xl2 : .xl
+
+        VStack(alignment: .leading, spacing: size == .large ? 24 : 16) {
+            Text(presentationPart.title)
+                .frame(
+                    maxWidth: 400,
+                    alignment: .leading
+                )
+                .font(.system(size: titleTextSize.rawValue, weight: .black))
+                .foregroundStyle(AppColors.Gray50.color)
+                .opacity(viewModel.appearTransitionState * viewModel.pageTransitionState)
+
             VStack(alignment: .leading, spacing: containerSpacing) {
-                Text("Context")
+                Text("Talking Points")
                     .frame(
                         alignment: .leading
                     )
-                    .font(.system(size: containerTextSize.rawValue, weight: .medium))
+                    .font(.system(size: containerTextSize.rawValue, weight: .bold))
                     .foregroundStyle(AppColors.Gray400.color)
                 TokenizedTextView(tokens: presentationPart.content)
                     .font(.system(size: containerTextSize.rawValue, weight: .medium))
@@ -275,8 +285,7 @@ struct PresentationPresentContentView: View {
                 maxHeight: .infinity,
                 alignment: .topLeading
             )
-            .padding(.horizontal, containerPadding)
-            .padding(.vertical, containerPadding)
+            .padding(containerPadding)
             .background(
                 RoundedRectangle(cornerRadius: containerBorderRadius)
                     .fill(AppColors.Gray900.color)
@@ -353,8 +362,7 @@ struct PresentationPresentContentView: View {
                     maxHeight: .infinity,
                     alignment: .topLeading
                 )
-                .padding(.horizontal, containerPadding)
-                .padding(.vertical, containerPadding)
+                .padding(containerPadding)
                 .background(
                     RoundedRectangle(cornerRadius: containerBorderRadius)
                         .fill(AppColors.Gray900.color)
@@ -390,7 +398,15 @@ struct PresentationPresentView: View {
         let buttonSize: AppButtonSize = horizontalSizeClass == .regular ? .large : .small
         let toolbarSize: PresentationToolbarSize = horizontalSizeClass == .regular ? .large : .small
         
-        PresentationPresentVX(appearVXTransitionState: viewModel.vxTransitionState)
+        if speechRecognizer.state == .active || speechRecognizer.state == .stopping {
+            PresentationPresentVX(appearVXTransitionState: viewModel.vxTransitionState)
+                .onAppear() {
+                    self.viewModel.vxTransitionState = 0
+                    withAnimation(.easeIn(duration: 0.75)) {
+                        self.viewModel.vxTransitionState = 1
+                    }
+                }
+        }
         
         if horizontalSizeClass == .regular {
             PresentationRegularLayoutView(
@@ -403,7 +419,7 @@ struct PresentationPresentView: View {
                 )
             }
             .title(title)
-            .img("playground")
+            .img(presentationPart.img)
         } else {
             PresentationCompactLayoutView(
                 imageAppearAnimationState: viewModel.appearTransitionState * viewModel.pageTransitionState
@@ -462,7 +478,7 @@ struct PresentationPresentView: View {
             
             if (page >= lastPage) {
                 AppButton(action: {
-                    goTo(viewType: .Overview)
+                    goTo(viewType: .Results)
                     HapticsImpactLight.impactOccurred()
                 }) {
                     Text("Done")
@@ -473,7 +489,7 @@ struct PresentationPresentView: View {
                 )
             } else {
                 AppButton(action: {
-                    goTo(viewType: .Overview)
+                    goTo(viewType: .Results)
                     HapticsImpactLight.impactOccurred()
                 }) {
                     Text("Done")
@@ -525,17 +541,12 @@ struct PresentationPresentView: View {
         
         viewModel.shouldShowSttusView = false
         
-        viewModel.vxTransitionState = 0
         viewModel.appearTransitionState = 0
         viewModel.appearTransitionWorkItem = DispatchWorkItem {
             withAnimation(.easeIn(duration: 0.3)) {
                 self.viewModel.appearTransitionState = 1
             } completion: {
                 viewModel.shouldShowSttusView = true
-            }
-            
-            withAnimation(.easeIn(duration: 0.75)) {
-                self.viewModel.vxTransitionState = 1
             }
         }
         DispatchQueue.main.async(execute: viewModel.appearTransitionWorkItem!)
@@ -547,7 +558,6 @@ struct PresentationPresentView: View {
         }
         
         viewModel.appearTransitionState = 1
-        viewModel.vxTransitionState = 1
         viewModel.appearTransitionWorkItem = DispatchWorkItem {
             withAnimation(.easeOut(duration: 0.3)) {
                 self.viewModel.appearTransitionState = 0

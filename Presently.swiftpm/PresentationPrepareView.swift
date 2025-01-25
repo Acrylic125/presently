@@ -54,10 +54,20 @@ struct PresentationPrepareContentView: View {
         let containerSpacing: CGFloat = size == .large ? 12 : 8
         let containerBorderRadius: CGFloat = size == .large ? 16 : 8
         let containerTextSize: AppFontSize = size == .large ? .xl2 : .lg
+        let titleTextSize: AppFontSize = size == .large ? .xl2 : .xl
 
-        VStack(spacing: size == .large ? 24 : 16) {
+        VStack(alignment: .leading, spacing: size == .large ? 24 : 16) {
+            Text(presentationPart.title)
+                .frame(
+                    maxWidth: 400,
+                    alignment: .leading
+                )
+                .font(.system(size: titleTextSize.rawValue, weight: .black))
+                .foregroundStyle(AppColors.Gray50.color)
+                .opacity(viewModel.appearTransitionState * viewModel.pageTransitionState)
+
             VStack(alignment: .leading, spacing: containerSpacing) {
-                Text("Context")
+                Text("Talking Points")
                     .frame(
                         alignment: .leading
                     )
@@ -72,8 +82,7 @@ struct PresentationPrepareContentView: View {
                 maxHeight: .infinity,
                 alignment: .topLeading
             )
-            .padding(.horizontal, containerPadding)
-            .padding(.vertical, containerPadding)
+            .padding(containerPadding)
             .background(
                 RoundedRectangle(cornerRadius: containerBorderRadius)
                     .fill(AppColors.Gray900.color)
@@ -150,8 +159,7 @@ struct PresentationPrepareContentView: View {
                     maxHeight: .infinity,
                     alignment: .topLeading
                 )
-                .padding(.horizontal, containerPadding)
-                .padding(.vertical, containerPadding)
+                .padding(containerPadding)
                 .background(
                     RoundedRectangle(cornerRadius: containerBorderRadius)
                         .fill(AppColors.Gray900.color)
@@ -197,7 +205,7 @@ struct PresentationPrepareView: View {
                 )
             }
             .title(title)
-            .img("playground")
+            .img(presentationPart.img)
         } else {
             PresentationCompactLayoutView(
                 imageAppearAnimationState: viewModel.appearTransitionState * viewModel.pageTransitionState

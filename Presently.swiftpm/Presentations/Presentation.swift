@@ -1,5 +1,5 @@
 public struct PresentationPart {
-    let heading: String
+    let title: String
     let content: [StringToken]
     let hint: [StringToken]?
     let img: String
@@ -59,17 +59,17 @@ public func tokenizeStr(_ input: String) -> [StringToken] {
 public struct AppPresentations {
     static let PlaygroundObservationsPresentation: Presentation = Presentation(
         parts: [
-            PresentationPart(heading: "Part 1",
+            PresentationPart(title: "First Look",
                              content: tokenizeStr("7am, vacant playground.\n \nObserved 2 swing sets, and a large slide.\n \nProblem #1, Creaking swings\n \nProblem #2, Ground covered in leaves."),
                              hint: tokenizeStr("Describe the vacancy. It is 7am, the playground is vacant.\n \nDescribe the set. You see <h>2 swing sets</h>, <h>a large slide</h>, <h>a set of monkey bars</h>, <h>a seesaw</h>, and <h>2 benches</h>\n \nDescribe the problem #1. You moved the swing, it <h>creaked</h>, as if it was <h>not maintained</h> for quite some time.\n \nDescribe the problem #2. You also notice the <h>ground was covered in leaves</h>."),
                              img: "pimg_full_playground_observations"
                             ),
-            PresentationPart(heading: "Part 2",
+            PresentationPart(title: "Creaking Swimg Problem",
                              content: tokenizeStr("Point <h>2</h> lol\n \n LOOOOL \n \nehdhhw whdhjwjkedw"),
                              hint: nil,
                              img: "pimg_full_playground_observations"
                             ),
-            PresentationPart(heading: "Part 3",
+            PresentationPart(title: "Leaves Problem",
                              content: tokenizeStr("Point 3"),
                              hint: nil,
                              img: "pimg_full_playground_observations"

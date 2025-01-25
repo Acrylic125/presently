@@ -28,7 +28,7 @@ struct PresentationRegularLayoutView<Content: View>: View {
         let pimgHeight = 480.0
         
         let topPadding = 48.0
-        let bottomPadding = 240.0
+        let bottomPadding = 120.0
         let centerRightContentTopPadding = max((UIScreen.main.bounds.height - rightContentHeight - topPadding - bottomPadding) / 2, 0)
 
         HStack {
@@ -208,7 +208,6 @@ struct PresentationCompactLayoutView<Content: View>: View {
                     content
                 }
                 .padding(.horizontal, 24)
-
             }
             .safeAreaPadding(safeAreaInsets)
             .padding(.top, 24)

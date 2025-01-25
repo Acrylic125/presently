@@ -1,17 +1,24 @@
 import SwiftUI
 import Charts
 
-struct OverallData: Identifiable {
+public struct PresentationTranscriptPart {
+    let title: String
+    let img: String
+    let duration: Double
+    let content: String
+}
+
+struct PresentationPacingData: Identifiable {
     let id = UUID()
     let timestamp: Float
     let words: Int
     
-    static func mockData() -> [OverallData] {
-        var records: [OverallData] = []
+    static func mockData() -> [PresentationPacingData] {
+        var records: [PresentationPacingData] = []
         
         for i in 1...20 {
             records.append(
-                OverallData(timestamp: Float(i) * 0.5, words: Int.random(in: 80...130))
+                PresentationPacingData(timestamp: Float(i) * 0.5, words: Int.random(in: 80...130))
             )
         }
         
@@ -20,290 +27,357 @@ struct OverallData: Identifiable {
 }
 
 public struct ResultsRegularView: View {
+    let size: AppContentSize
     let title: String;
-    let overallData: [OverallData]
-    
+    let pacingData: [PresentationPacingData]
+    let parts: [PresentationTranscriptPart] = [
+        .init(title: "Hello World", img: "playground", duration: 60_000_000, content: "LLorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.orem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."),
+        .init(title: "Hello 2", img: "playground", duration: 3_000_000, content: "LLorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod")
+    ]
+
     private var areaBackground: Gradient {
         return Gradient(colors: [AppColors.Primary500.color, AppColors.Primary500.color.opacity(0.1)])
     }
 
     public var body: some View {
-        let maxTimestamp = overallData.map { $0.timestamp }.max() ?? 0
+        let maxTimestamp = pacingData.map { $0.timestamp }.max() ?? 0
         let intervalPoints = Array(stride(from: 0, through: maxTimestamp, by: maxTimestamp / 4))
         
-        let gridSpacing: Double = 20
+        let gridSpacing: CGFloat = size == .large ? 20 : 12
+        let containerPadding: CGFloat = size == .large ? 24 : 12
+        let containerBorderRadius: CGFloat = size == .large ? 16 : 8
+        let containerContentSpacing: CGFloat = size == .large ? 8 : 4
         
-        HStack(spacing: gridSpacing) {
-            VStack(alignment: .leading) {
-                Text("Pacing")
-                    .frame(
-                        maxWidth: 300,
-                        alignment: .leading
-                    )
-                    .foregroundStyle(AppColors.Gray300.color)
-                    .font(.system(size: AppFontSize.xl2.rawValue, weight: .medium))
-                    .padding(.horizontal, 12)
-                
-                Chart(overallData) {
-                    LineMark(
-                        x: .value("Timestamp", $0.timestamp),
-                        y: .value("Words", $0.words)
-                    )
-                    .interpolationMethod(.catmullRom)
-                    .foregroundStyle(AppColors.Primary500.color)
-                    
-                    AreaMark(
-                        x: .value("Timestamp", $0.timestamp),
-                        y: .value("Words", $0.words)
-                    )
-                    .interpolationMethod(.catmullRom)
-                    .foregroundStyle(areaBackground)
-                    
-                    RuleMark(y: .value("Average", 50))
-                        .foregroundStyle(AppColors.Primary500.color)
-                        .lineStyle(StrokeStyle(lineWidth: 1, dash: [5]))
-                }
-                .chartYAxis {
-                    AxisMarks() { value in
-                        AxisValueLabel() {
-                            if let timestamp = value.as(Float.self) {
-                                Text(String(format: "%.1f", timestamp))
-                                    .foregroundStyle(AppColors.Gray300.color)
-                            }
-                        }
-                    }
-                }
-                .chartXAxis {
-                    AxisMarks(values: intervalPoints) { value in
-                        AxisValueLabel(centered: true) {
-                            if let timestamp = value.as(Float.self) {
-                                Text(String(format: "%.1f", timestamp))
-                                    .foregroundStyle(AppColors.Gray300.color)
-                            }
-                        }
-                    }
-                }
-                .chartXScale(domain: 0 ... 10)
-                .chartYScale(domain: 0 ... 130)
-                .frame(height: 240)
-            }
-            .frame(
-                maxWidth: .infinity
-            )
-            .padding(.bottom, 12)
-            .padding(.top, 12)
-            .background(
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(AppColors.Gray900.color)
-                    .stroke(AppColors.Gray700.color, lineWidth: 1)
-            )
+        let headerFontSize: AppFontSize = size == .large ? .xl2 : .lg
+        let textFontSize: AppFontSize = size == .large ? .xl3 : .xl
+        let transcriptTextFontSize: AppFontSize = size == .large ? .xl2 : .lg
+        
+        let sectionSpacing: CGFloat = size == .large ? 24 : 16
+        
+        VStack(alignment: .leading, spacing: sectionSpacing) {
+            Text(title)
+                .frame(
+                    maxWidth: size == .small ? 320 : 440,
+                    alignment: .leading
+                )
+                .foregroundStyle(AppColors.Gray50.color)
+                .font(.system(size: size == .large ? AppFontSize.xl4.rawValue : AppFontSize.xl3.rawValue, weight: .black))
             
-            VStack(spacing: gridSpacing) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Spacer()
-                    Text("Duration")
+            VStack(alignment: .leading, spacing: gridSpacing) {
+                Text("Overview")
+                    .foregroundStyle(AppColors.Gray50.color)
+                    .font(.system(size: headerFontSize.rawValue, weight: .medium))
+
+                Grid(
+                    horizontalSpacing: gridSpacing,
+                    verticalSpacing: gridSpacing
+                ) {
+                    let durationCell = VStack(alignment: .leading, spacing: containerContentSpacing) {
+                        if size == .large {
+                            Spacer()
+                        }
+                        Text("Duration")
+                            .frame(
+                                alignment: .leading
+                            )
+                            .foregroundStyle(AppColors.Gray300.color)
+                            .font(.system(size: headerFontSize.rawValue, weight: .medium))
+                        Text("3m")
+                            .frame(
+                                alignment: .leading
+                            )
+                            .foregroundStyle(AppColors.Gray50.color)
+                            .font(.system(size: textFontSize.rawValue, weight: .medium))
+                        if size == .large {
+                            Spacer()
+                        }
+                    }
                         .frame(
+                            maxWidth: .infinity,
+                            maxHeight: size == .large ? .infinity : nil,
                             alignment: .leading
                         )
-                        .foregroundStyle(AppColors.Gray300.color)
-                        .font(.system(size: AppFontSize.xl2.rawValue, weight: .medium))
-                    Text("3m")
+                        .padding(containerPadding)
+                        .background(
+                            RoundedRectangle(cornerRadius: containerBorderRadius)
+                                .fill(AppColors.Gray900.color)
+                                .stroke(AppColors.Gray700.color, lineWidth: 1)
+                        )
+                    let wpmCell = VStack(alignment: .leading, spacing: containerContentSpacing) {
+                        if size == .large {
+                            Spacer()
+                        }
+                        Text("Average Speed")
+                            .frame(
+                                alignment: .leading
+                            )
+                            .foregroundStyle(AppColors.Gray300.color)
+                            .font(.system(size: headerFontSize.rawValue, weight: .medium))
+                        Text("120 wpm")
+                            .frame(
+                                alignment: .leading
+                            )
+                            .foregroundStyle(AppColors.Gray50.color)
+                            .font(.system(size: textFontSize.rawValue, weight: .medium))
+                        if size == .large {
+                            Spacer()
+                        }
+                    }
                         .frame(
+                            maxWidth: .infinity,
+                            maxHeight: size == .large ? .infinity : nil,
                             alignment: .leading
                         )
-                        .foregroundStyle(AppColors.Gray50.color)
-                        .font(.system(size: AppFontSize.xl3.rawValue, weight: .medium))
-                    Spacer()
+                        .padding(containerPadding)
+                        .background(
+                            RoundedRectangle(cornerRadius: containerBorderRadius)
+                                .fill(AppColors.Gray900.color)
+                                .stroke(AppColors.Gray700.color, lineWidth: 1)
+                        )
+
+                    GridRow {
+                        VStack(alignment: .leading) {
+                            Text("Pacing")
+                                .frame(
+                                    maxWidth: 300,
+                                    alignment: .leading
+                                )
+                                .foregroundStyle(AppColors.Gray300.color)
+                                .font(.system(size: headerFontSize.rawValue, weight: .medium))
+                                .padding(.horizontal, containerPadding)
+                            
+                            Chart(pacingData) {
+                                LineMark(
+                                    x: .value("Timestamp", $0.timestamp),
+                                    y: .value("Words", $0.words)
+                                )
+                                .interpolationMethod(.catmullRom)
+                                .foregroundStyle(AppColors.Primary500.color)
+                                
+                                AreaMark(
+                                    x: .value("Timestamp", $0.timestamp),
+                                    y: .value("Words", $0.words)
+                                )
+                                .interpolationMethod(.catmullRom)
+                                .foregroundStyle(areaBackground)
+                                
+                                RuleMark(y: .value("Average", 50))
+                                    .foregroundStyle(AppColors.Primary500.color)
+                                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [5]))
+                            }
+                            .chartYAxis {
+                                AxisMarks() { value in
+                                    AxisValueLabel() {
+                                        if let timestamp = value.as(Float.self) {
+                                            Text(String(format: "%.1f", timestamp))
+                                                .foregroundStyle(AppColors.Gray300.color)
+                                        }
+                                    }
+                                }
+                            }
+                            .chartXAxis {
+                                AxisMarks(values: intervalPoints) { value in
+                                    AxisValueLabel(centered: true) {
+                                        if let timestamp = value.as(Float.self) {
+                                            Text(String(format: "%.1f", timestamp))
+                                                .foregroundStyle(AppColors.Gray300.color)
+                                        }
+                                    }
+                                }
+                            }
+                            .chartXScale(domain: 0 ... 10)
+                            .chartYScale(domain: 0 ... 130)
+                            .frame(height: 240)
+                        }
+                        .frame(
+                            maxWidth: .infinity,
+                            maxHeight: size == .large ? .infinity : nil
+                        )
+                        .padding(.vertical, containerPadding)
+                        .background(
+                            RoundedRectangle(cornerRadius: containerBorderRadius)
+                                .fill(AppColors.Gray900.color)
+                                .stroke(AppColors.Gray700.color, lineWidth: 1)
+                        )
+                        
+                        if size == .large {
+                            Grid(
+                                horizontalSpacing: gridSpacing,
+                                verticalSpacing: gridSpacing
+                            ) {
+                                GridRow {
+                                    durationCell
+                                }
+                                .frame(
+                                    maxWidth: .infinity,
+                                    maxHeight: .infinity
+                                )
+                                
+                                GridRow {
+                                    wpmCell
+                                }
+                                .frame(
+                                    maxWidth: .infinity,
+                                    maxHeight: .infinity
+                                )
+                            }
+                            .frame(
+                                maxWidth: 300,
+                                maxHeight: .infinity
+                            )
+                        }
+                    }
+                   
+                    if size == .small {
+                        HStack(spacing: gridSpacing) {
+                            durationCell
+                            wpmCell
+                        }
+                    }
                 }
                 .frame(
-                    maxWidth: .infinity,
-                    maxHeight: .infinity,
-                    alignment: .leading
-                )
-                .padding(.horizontal, 12)
-                .padding(.vertical, 12)
-                .background(
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(AppColors.Gray900.color)
-                        .stroke(AppColors.Gray700.color, lineWidth: 1)
-                )
-                
-                VStack(alignment: .leading, spacing: 4) {
-                    Spacer()
-                    Text("Average Speed")
-                        .frame(
-                            alignment: .leading
-                        )
-                        .foregroundStyle(AppColors.Gray300.color)
-                        .font(.system(size: AppFontSize.xl2.rawValue, weight: .medium))
-                    Text("120 wpm")
-                        .frame(
-                            alignment: .leading
-                        )
-                        .foregroundStyle(AppColors.Gray50.color)
-                        .font(.system(size: AppFontSize.xl3.rawValue, weight: .medium))
-                    Spacer()
-                }
-                .frame(
-                    maxWidth: .infinity,
-                    maxHeight: .infinity,
-                    alignment: .leading
-                )
-                .padding(.horizontal, 12)
-                .padding(.vertical, 12)
-                .background(
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(AppColors.Gray900.color)
-                        .stroke(AppColors.Gray700.color, lineWidth: 1)
+                    maxHeight: size == .large ? 320 : nil
                 )
             }
-            .frame(
-                maxWidth: 300
-            )
-
-        }
-        
-    }
-}
-
-public struct ResultsCompactView: View {
-    let title: String;
-    let overallData: [OverallData]
-    
-    private var areaBackground: Gradient {
-        return Gradient(colors: [AppColors.Primary500.color, AppColors.Primary500.color.opacity(0.1)])
-    }
-
-    public var body: some View {
-        let maxTimestamp = overallData.map { $0.timestamp }.max() ?? 0
-        let intervalPoints = Array(stride(from: 0, through: maxTimestamp, by: maxTimestamp / 4))
-        
-        VStack(alignment: .leading) {
-            Text("Pacing")
-                .frame(
-                    maxWidth: 300,
-                    alignment: .leading
-                )
-                .foregroundStyle(AppColors.Gray300.color)
-                .font(.system(size: AppFontSize.lg.rawValue, weight: .medium))
-                .padding(.horizontal, 12)
             
-            Chart(overallData) {
-                LineMark(
-                    x: .value("Timestamp", $0.timestamp),
-                    y: .value("Words", $0.words)
-                )
-                .interpolationMethod(.catmullRom)
-                .foregroundStyle(AppColors.Primary500.color)
+            VStack(alignment: .leading, spacing: gridSpacing) {
+                Text("Transcript")
+                    .foregroundStyle(AppColors.Gray50.color)
+                    .font(.system(size: headerFontSize.rawValue, weight: .medium))
                 
-                AreaMark(
-                    x: .value("Timestamp", $0.timestamp),
-                    y: .value("Words", $0.words)
-                )
-                .interpolationMethod(.catmullRom)
-                .foregroundStyle(areaBackground)
-                
-                RuleMark(y: .value("Average", 50))
-                    .foregroundStyle(AppColors.Primary500.color)
-                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [5]))
-            }
-            .chartYAxis {
-                AxisMarks() { value in
-                    AxisValueLabel() {
-                        if let timestamp = value.as(Float.self) {
-                            Text(String(format: "%.1f", timestamp))
-                                .foregroundStyle(AppColors.Gray300.color)
+                LazyVStack(spacing: gridSpacing) {
+                    ForEach(parts, id: \.self.title) { part in
+                        if size == .large {
+                            HStack(spacing: 48) {
+                                VStack(spacing: 8) {
+                                    VStack {
+                                        Image(part.img)
+                                            .resizable()
+                                            .scaledToFit()
+                                    }
+                                    .frame(width: 240)
+                                    Text("3 min")
+                                        .frame(
+                                            alignment: .center
+                                        )
+                                        .foregroundStyle(AppColors.Gray300.color)
+                                        .font(.system(size: headerFontSize.rawValue, weight: .medium))
+                                    Spacer()
+                                }
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text(part.title)
+                                        .frame(
+                                            alignment: .leading
+                                        )
+                                        .foregroundStyle(AppColors.Primary500.color)
+                                        .font(.system(size: headerFontSize.rawValue, weight: .bold))
+                                    Text(part.content)
+                                        .lineSpacing(4)
+                                        .frame(
+                                            maxWidth: 800,
+                                            alignment: .leading
+                                        )
+                                        .foregroundStyle(AppColors.Gray50.color)
+                                        .font(.system(size: transcriptTextFontSize.rawValue, weight: .medium))
+                                }
+                            }
+                            .frame(
+                                maxWidth: .infinity,
+                                maxHeight: .infinity,
+                                alignment: .leading
+                            )
+                            .padding(containerPadding)
+                            .background(
+                                RoundedRectangle(cornerRadius: containerBorderRadius)
+                                    .fill(AppColors.Gray900.color)
+                                    .stroke(AppColors.Gray700.color, lineWidth: 1)
+                            )
+                        } else {
+                            VStack(alignment: .leading, spacing: 8) {
+                                HStack(spacing: 8) {
+                                    VStack {
+                                        Image(part.img)
+                                            .resizable()
+                                            .scaledToFit()
+                                    }
+                                    .frame(width: 96)
+                                    Spacer()
+                                    Text("3 min")
+                                        .frame(
+                                            alignment: .center
+                                        )
+                                        .foregroundStyle(AppColors.Gray300.color)
+                                        .font(.system(size: headerFontSize.rawValue, weight: .medium))
+                                }
+                                Text(part.title)
+                                    .frame(
+                                        alignment: .leading
+                                    )
+                                    .foregroundStyle(AppColors.Primary500.color)
+                                    .font(.system(size: headerFontSize.rawValue, weight: .bold))
+                                Text(part.content)
+                                    .lineSpacing(4)
+                                    .frame(
+                                        maxWidth: 800,
+                                        alignment: .leading
+                                    )
+                                    .foregroundStyle(AppColors.Gray50.color)
+                                    .font(.system(size: transcriptTextFontSize.rawValue, weight: .medium))
+                            }
+                            .frame(
+                                maxWidth: .infinity,
+                                maxHeight: .infinity,
+                                alignment: .leading
+                            )
+                            .padding(containerPadding)
+                            .background(
+                                RoundedRectangle(cornerRadius: containerBorderRadius)
+                                    .fill(AppColors.Gray900.color)
+                                    .stroke(AppColors.Gray700.color, lineWidth: 1)
+                            )
                         }
+                        
                     }
                 }
+                
             }
-            .chartXAxis {
-                AxisMarks(values: intervalPoints) { value in
-                    AxisValueLabel(centered: true) {
-                        if let timestamp = value.as(Float.self) {
-                            Text(String(format: "%.1f", timestamp))
-                                .foregroundStyle(AppColors.Gray300.color)
-                        }
-                    }
-                }
-            }
-            .chartXScale(domain: 0 ... 10)
-            .chartYScale(domain: 0 ... 130)
-            .frame(height: 240)
+            .padding(.top, 16)
+
         }
         .frame(
             maxWidth: .infinity,
-            alignment: .topLeading
+            maxHeight: .infinity
         )
-        .padding(.bottom, 12)
-        .padding(.top, 12)
-        .background(
-            RoundedRectangle(cornerRadius: 8)
-                .fill(AppColors.Gray900.color)
-                .stroke(AppColors.Gray700.color, lineWidth: 1)
-        )
-        
-        HStack(alignment: .top, spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Duration")
-                    .frame(
-                        alignment: .leading
-                    )
-                    .foregroundStyle(AppColors.Gray300.color)
-                    .font(.system(size: AppFontSize.lg.rawValue, weight: .medium))
-                Text("3m")
-                    .frame(
-                        alignment: .leading
-                    )
-                    .foregroundStyle(AppColors.Gray50.color)
-                    .font(.system(size: AppFontSize.lg.rawValue, weight: .medium))
-            }
-            .frame(
-                maxWidth: .infinity,
-                alignment: .topLeading
-            )
-            .padding(.horizontal, 12)
-            .padding(.vertical, 12)
-            .background(
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(AppColors.Gray900.color)
-                    .stroke(AppColors.Gray700.color, lineWidth: 1)
-            )
-            
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Average Speed")
-                    .frame(
-                        alignment: .leading
-                    )
-                    .foregroundStyle(AppColors.Gray300.color)
-                    .font(.system(size: AppFontSize.lg.rawValue, weight: .medium))
-                Text("120 wpm")
-                    .frame(
-                        alignment: .leading
-                    )
-                    .foregroundStyle(AppColors.Gray50.color)
-                    .font(.system(size: AppFontSize.lg.rawValue, weight: .medium))
-            }
-            .frame(
-                maxWidth: .infinity,
-                alignment: .topLeading
-            )
-            .padding(.horizontal, 12)
-            .padding(.vertical, 12)
-            .background(
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(AppColors.Gray900.color)
-                    .stroke(AppColors.Gray700.color, lineWidth: 1)
-            )
-        }
-        
+
     }
 }
+
+struct SampleRow: View {
+    let id: Int
+
+    var body: some View {
+        let m: Double = Double(id % 3)
+        VStack {
+            Text("Row \(id)")
+                .foregroundStyle(Color.white)
+        }
+        .frame(
+            height: (m + 1.0) * 20.0
+        )
+        .background(m == 0 ? Color.blue : Color.yellow)
+    }
+
+    init(id: Int) {
+        print("Loading row \(id)")
+        self.id = id
+    }
+}
+
 
 public struct ResultsView: View {
     let title: String;
     
-    @State var overallData = OverallData.mockData()
+    @State var pacingData = PresentationPacingData.mockData()
     
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
     
@@ -313,22 +387,12 @@ public struct ResultsView: View {
         ZStack(alignment: .topLeading) {
             ScrollView {
                 VStack {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text(title)
-                            .frame(
-                                maxWidth: horizontalSizeClass == .compact ? 320 : 440,
-                                alignment: .leading
-                            )
-                            .foregroundStyle(AppColors.Gray50.color)
-                            .font(.system(size: AppFontSize.xl3.rawValue, weight: .black))
-                        
+                    VStack(alignment: .leading, spacing: 24) {
                         if (horizontalSizeClass == .compact) {
-                            ResultsCompactView(title: title, overallData: overallData)
+                            ResultsRegularView(size: .small, title: title, pacingData: pacingData)
                         } else {
-                            ResultsRegularView(title: title, overallData: overallData)
+                            ResultsRegularView(size: .large, title: title, pacingData: pacingData)
                         }
-                        
-                        Spacer()
                     }
                     .frame(
                         maxWidth: .infinity,
