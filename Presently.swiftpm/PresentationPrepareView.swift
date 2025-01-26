@@ -88,7 +88,8 @@ struct PresentationPrepareContentView: View {
                     .fill(AppColors.Gray900.color)
                     .stroke(AppColors.Gray700.color, lineWidth: 1)
             )
-            
+            .opacity(viewModel.appearTransitionState)
+
             if (presentationPart.hint != nil) {
                 VStack(alignment: .leading, spacing: containerSpacing) {
                     HStack {
@@ -107,7 +108,6 @@ struct PresentationPrepareContentView: View {
                                 } completion: {
                                     viewModel.hintsExpanded = false
                                 }
-                                HapticsImpactLight.impactOccurred()
                             }) {
                                 HStack {
                                     Text("Hide Hints")
@@ -127,7 +127,6 @@ struct PresentationPrepareContentView: View {
                         } else {
                             AppButton(action: {
                                 viewModel.hintsExpanded = true
-                                HapticsImpactLight.impactOccurred()
                             }) {
                                 HStack {
                                     Text("Show Hints")
@@ -165,6 +164,7 @@ struct PresentationPrepareContentView: View {
                         .fill(AppColors.Gray900.color)
                         .stroke(AppColors.Gray700.color, lineWidth: 1)
                 )
+                .opacity(viewModel.appearTransitionState)
             }
         }
     }
@@ -226,7 +226,6 @@ struct PresentationPrepareView: View {
         ) {
             AppButton(action: {
                 viewModel.goToPage(newPage: page - 1)
-                HapticsImpactLight.impactOccurred()
             }) {
                 HStack {
                     Image(systemName: "arrow.left")
@@ -247,7 +246,6 @@ struct PresentationPrepareView: View {
             
             AppButton(action: {
                 viewModel.goToPage(newPage: page + 1)
-                HapticsImpactLight.impactOccurred()
             }) {
                 HStack {
                     if (horizontalSizeClass == .regular) {
@@ -264,7 +262,7 @@ struct PresentationPrepareView: View {
             
             if (page >= lastPage) {
                 AppButton(action: {
-                    HapticsImpactLight.impactOccurred()
+                    speechRecognizer.initSessionTranscriptions(partId: presentationParts[0].id)
                     speechRecognizer.start()
                     goTo(viewType: .Present)
                 }) {
@@ -276,9 +274,9 @@ struct PresentationPrepareView: View {
                 )
             } else {
                 AppButton(action: {
-                    goTo(viewType: .Present)
+                    speechRecognizer.initSessionTranscriptions(partId: presentationParts[0].id)
                     speechRecognizer.start()
-                    HapticsImpactLight.impactOccurred()
+                    goTo(viewType: .Present)
                 }) {
                     Text("Start")
                 }

@@ -396,15 +396,8 @@ public struct ResultsContentView: View {
             maxHeight: .infinity
         )
         
-        PresentationViewCloseButton(onClose: self.onClose)
-            .onAppear() {
-//                animateIn()
-            }
-            .onDisappear() {
-//                speechRecognizer.stop()
-            }
-
     }
+    
 }
 
 public struct ResultsView: View {
@@ -414,6 +407,7 @@ public struct ResultsView: View {
     @State var viewModel = ResultsViewModel()
 
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
+    @Environment(\.dismiss) private var dismiss
     
     public var body: some View {
         let safeAreaInsets = getSafeAreaInset()
@@ -452,6 +446,14 @@ public struct ResultsView: View {
                 maxWidth: .infinity,
                 maxHeight: .infinity
             )
+            
+            PresentationViewCloseButton(onClose: self.onClose)
+                .onAppear() {
+    //                animateIn()
+                }
+                .onDisappear() {
+    //                speechRecognizer.stop()
+                }
         }
         .ignoresSafeArea()
         .navigationBarBackButtonHidden()
@@ -459,6 +461,7 @@ public struct ResultsView: View {
         .onAppear() {
             animateIn()
         }
+        
     }
     
     func animateIn() {
@@ -473,6 +476,10 @@ public struct ResultsView: View {
             }
         }
         DispatchQueue.main.async(execute: viewModel.appearTransitionWorkItem!)
+    }
+    
+    func onClose() {
+        dismiss()
     }
 
 }

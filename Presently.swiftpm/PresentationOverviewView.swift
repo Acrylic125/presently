@@ -41,6 +41,7 @@ struct PresentationOverviewContentView: View {
                     .fill(AppColors.Gray900.color)
                     .stroke(AppColors.Gray700.color, lineWidth: 1)
             )
+            .opacity(viewModel.appearTransitionState)
         }
     }
 }
@@ -93,7 +94,6 @@ struct PresentationOverviewView: View {
         ) {
             AppButton(action: {
                 goTo(viewType: .Prepare)
-                HapticsImpactLight.impactOccurred()
             }) {
                 Text("Prepare")
             }
@@ -103,7 +103,6 @@ struct PresentationOverviewView: View {
             AppButton(action: {
                 speechRecognizer.start()
                 goTo(viewType: .Present)
-                HapticsImpactLight.impactOccurred()
             }) {
                 Text("Start")
             }

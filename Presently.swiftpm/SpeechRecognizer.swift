@@ -26,6 +26,16 @@ enum RecognizerError: Error {
     }
 }
 
+public struct PresentationCheckpoint {
+    let partId: String
+    let startTime: Int
+}
+
+public struct PresentationSessionTranscript {
+    var transcriptions: [SFTranscription] = []
+    var checkpoints: [PresentationCheckpoint] = []
+}
+
 final public class SpeechRecgonizer: ObservableObject {
     private var audioEngine: AVAudioEngine?
     private var audioSession: AVAudioSession?
@@ -33,7 +43,8 @@ final public class SpeechRecgonizer: ObservableObject {
     private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
     private var recognitionTask: SFSpeechRecognitionTask?
     
-    @Published var transcriptions: [SFTranscription] = []
+//    @Published var transcriptions: [SFTranscription] = []
+    @Published var transcriptions: [PresentationSessionTranscript] = []
     @Published var state: SpeechRecognizerState = .inactive
     @Published var error: Error?
     
@@ -62,6 +73,37 @@ final public class SpeechRecgonizer: ObservableObject {
     @MainActor private func setError(error: Error) {
         self.state = .inactive
         self.error = error
+    }
+    
+    @MainActor public func clockPart(
+        partId: String
+    ) {
+        if self.transcriptions.count <= 0 {
+            print("No existing checkpoints found despite clocking in part")
+            return
+        }
+        self.transcriptions[self.transcriptions.count - 1].checkpoints.append(
+            .init(
+                partId: partId,
+                startTime: Int(Date().timeIntervalSince1970 * 1_000)
+            )
+        )
+    }
+
+    @MainActor public func initSessionTranscriptions(
+        partId: String
+    ) {
+        self.transcriptions = [
+            .init(
+                transcriptions: [],
+                checkpoints: [
+                    .init(
+                        partId: partId,
+                        startTime: Int(Date().timeIntervalSince1970 * 1_000)
+                    )
+                ]
+            )
+        ]
     }
 
     func start(shouldReset: Bool = true) {
@@ -163,9 +205,13 @@ final public class SpeechRecgonizer: ObservableObject {
     
     private func transcribe(_ message: String, _ transcriptions: [SFTranscription] ) {
         print(message)
-        self.transcriptions = transcriptions
+        if self.transcriptions.count <= 0 {
+            print("No existing transcriptions found despite speech recognizer running")
+            return
+        }
+        self.transcriptions[self.transcriptions.count - 1].transcriptions = transcriptions
     }
-    
+
     private func transcribe(_ error: Error) {
         let errorMessage = asErrorMessage(error: error)
         print("Error \(errorMessage)!")

@@ -9,6 +9,8 @@ final class PresentationPresentViewModel {
     
     var vxTransitionState: Double = 0
     
+    var stageTransitionState: Double = 1
+
     var showStatusViewAppearState: Double = 0
     var shouldShowSttusView: Bool = false
     
@@ -291,6 +293,7 @@ struct PresentationPresentContentView: View {
                     .fill(AppColors.Gray900.color)
                     .stroke(AppColors.Gray700.color, lineWidth: 1)
             )
+            .opacity(viewModel.appearTransitionState)
             
             if (presentationPart.hint != nil) {
                 VStack(alignment: .leading, spacing: containerSpacing) {
@@ -310,7 +313,6 @@ struct PresentationPresentContentView: View {
                                 } completion: {
                                     viewModel.hintsExpanded = false
                                 }
-                                HapticsImpactLight.impactOccurred()
                             }) {
                                 HStack {
                                     Text("Hide Hints")
@@ -330,7 +332,6 @@ struct PresentationPresentContentView: View {
                         } else {
                             AppButton(action: {
                                 viewModel.hintsExpanded = true
-                                HapticsImpactLight.impactOccurred()
                             }) {
                                 HStack {
                                     Text("Show Hints")
@@ -368,6 +369,7 @@ struct PresentationPresentContentView: View {
                         .fill(AppColors.Gray900.color)
                         .stroke(AppColors.Gray700.color, lineWidth: 1)
                 )
+                .opacity(viewModel.appearTransitionState)
             }
         }
     }
@@ -410,7 +412,8 @@ struct PresentationPresentView: View {
         
         if horizontalSizeClass == .regular {
             PresentationRegularLayoutView(
-                imageAppearAnimationState: viewModel.appearTransitionState * viewModel.pageTransitionState
+                imageAppearAnimationState: viewModel.appearTransitionState * viewModel.pageTransitionState,
+                stageAppearAnimationState: viewModel.stageTransitionState
             ) {
                 PresentationPresentContentView(
                     size: .large,
@@ -422,7 +425,8 @@ struct PresentationPresentView: View {
             .img(presentationPart.img)
         } else {
             PresentationCompactLayoutView(
-                imageAppearAnimationState: viewModel.appearTransitionState * viewModel.pageTransitionState
+                imageAppearAnimationState: viewModel.appearTransitionState * viewModel.pageTransitionState,
+                stageAppearAnimationState: viewModel.stageTransitionState
             ) {
                 PresentationPresentContentView(
                     size: .small,
@@ -439,8 +443,8 @@ struct PresentationPresentView: View {
             size: toolbarSize
         ) {
             AppButton(action: {
+                speechRecognizer.clockPart(partId: presentationPart.id)
                 viewModel.goToPage(newPage: page - 1)
-                HapticsImpactLight.impactOccurred()
             }) {
                 HStack {
                     Image(systemName: "arrow.left")
@@ -460,8 +464,8 @@ struct PresentationPresentView: View {
                 .foregroundColor(AppColors.Gray400.color)
             
             AppButton(action: {
+                speechRecognizer.clockPart(partId: presentationPart.id)
                 viewModel.goToPage(newPage: page + 1)
-                HapticsImpactLight.impactOccurred()
             }) {
                 HStack {
                     if (horizontalSizeClass == .regular) {
@@ -479,7 +483,6 @@ struct PresentationPresentView: View {
             if (page >= lastPage) {
                 AppButton(action: {
                     goTo(viewType: .Results)
-                    HapticsImpactLight.impactOccurred()
                 }) {
                     Text("Done")
                 }
@@ -490,7 +493,6 @@ struct PresentationPresentView: View {
             } else {
                 AppButton(action: {
                     goTo(viewType: .Results)
-                    HapticsImpactLight.impactOccurred()
                 }) {
                     Text("Done")
                 }
@@ -542,6 +544,7 @@ struct PresentationPresentView: View {
         viewModel.shouldShowSttusView = false
         
         viewModel.appearTransitionState = 0
+        viewModel.stageTransitionState = 1
         viewModel.appearTransitionWorkItem = DispatchWorkItem {
             withAnimation(.easeIn(duration: 0.3)) {
                 self.viewModel.appearTransitionState = 1
@@ -559,10 +562,14 @@ struct PresentationPresentView: View {
         
         viewModel.appearTransitionState = 1
         viewModel.appearTransitionWorkItem = DispatchWorkItem {
-            withAnimation(.easeOut(duration: 0.3)) {
+            let duration: Double = viewType == .Results ? 0.5 : 0.3
+            withAnimation(.easeOut(duration: duration)) {
                 self.viewModel.appearTransitionState = 0
                 self.viewModel.vxTransitionState = 0
                 self.viewModel.showStatusViewAppearState = 0
+                if viewType == .Results {
+                    self.viewModel.stageTransitionState = 0
+                }
             } completion: {
                 self.viewType = viewType
             }

@@ -1,4 +1,5 @@
 public struct PresentationPart {
+    let id: String
     let title: String
     let content: [StringToken]
     let hint: [StringToken]?
@@ -59,21 +60,27 @@ public func tokenizeStr(_ input: String) -> [StringToken] {
 public struct AppPresentations {
     static let PlaygroundObservationsPresentation: Presentation = Presentation(
         parts: [
-            PresentationPart(title: "First Look",
-                             content: tokenizeStr("7am, vacant playground.\n \nObserved 2 swing sets, and a large slide.\n \nProblem #1, Creaking swings\n \nProblem #2, Ground covered in leaves."),
-                             hint: tokenizeStr("Describe the vacancy. It is 7am, the playground is vacant.\n \nDescribe the set. You see <h>2 swing sets</h>, <h>a large slide</h>, <h>a set of monkey bars</h>, <h>a seesaw</h>, and <h>2 benches</h>\n \nDescribe the problem #1. You moved the swing, it <h>creaked</h>, as if it was <h>not maintained</h> for quite some time.\n \nDescribe the problem #2. You also notice the <h>ground was covered in leaves</h>."),
-                             img: "pimg_full_playground_observations"
-                            ),
-            PresentationPart(title: "Creaking Swimg Problem",
-                             content: tokenizeStr("Point <h>2</h> lol\n \n LOOOOL \n \nehdhhw whdhjwjkedw"),
-                             hint: nil,
-                             img: "pimg_full_playground_observations"
-                            ),
-            PresentationPart(title: "Leaves Problem",
-                             content: tokenizeStr("Point 3"),
-                             hint: nil,
-                             img: "pimg_full_playground_observations"
-                            ),
+            PresentationPart(
+                id: "1",
+                title: "First Look",
+                content: tokenizeStr("7am, vacant playground.\n \nObserved 2 swing sets, and a large slide.\n \nProblem #1, Creaking swings\n \nProblem #2, Ground covered in leaves."),
+                hint: tokenizeStr("Describe the vacancy. It is 7am, the playground is vacant.\n \nDescribe the set. You see <h>2 swing sets</h>, <h>a large slide</h>, <h>a set of monkey bars</h>, <h>a seesaw</h>, and <h>2 benches</h>\n \nDescribe the problem #1. You moved the swing, it <h>creaked</h>, as if it was <h>not maintained</h> for quite some time.\n \nDescribe the problem #2. You also notice the <h>ground was covered in leaves</h>."),
+                img: "pimg_full_playground_observations"
+            ),
+            PresentationPart(
+                id: "1",
+                title: "Creaking Swimg Problem",
+                content: tokenizeStr("Point <h>2</h> lol\n \n LOOOOL \n \nehdhhw whdhjwjkedw"),
+                hint: nil,
+                img: "pimg_full_playground_observations"
+            ),
+            PresentationPart(
+                id: "3",
+                title: "Leaves Problem",
+                content: tokenizeStr("Point 3"),
+                hint: nil,
+                img: "pimg_full_playground_observations"
+            ),
         ],
         context: tokenizeStr("You are a <h>town council representative</h> working to improve facilities in your neighbourhood.\n \nYou visited a local playground to observe how people <h>use the space</h> and <h>identify opportunities</h> for improvement.\n \nYou will present your <h>findings and recommendations</h>."),
         img: "pimg_full_playground_observations"

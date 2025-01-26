@@ -12,14 +12,22 @@ struct ViewSizeKey: PreferenceKey {
 struct PresentationRegularLayoutView<Content: View>: View {
     
     var imageAppearAnimationState: Double
+    var stageAppearAnimationState: Double
     @State private var rightContentHeight: CGFloat = 0
-    
+
     let content: Content
     private var title: String = ""
     private var img: String = ""
+    
+    init(imageAppearAnimationState: Double, stageAppearAnimationState: Double, @ViewBuilder content: () -> Content) {
+        self.imageAppearAnimationState = imageAppearAnimationState
+        self.stageAppearAnimationState = stageAppearAnimationState
+        self.content = content()
+    }
 
     init(imageAppearAnimationState: Double, @ViewBuilder content: () -> Content) {
         self.imageAppearAnimationState = imageAppearAnimationState
+        self.stageAppearAnimationState = 1
         self.content = content()
     }
     
@@ -63,6 +71,7 @@ struct PresentationRegularLayoutView<Content: View>: View {
                             )
                             .offset(y: pimgHeight * 0.25)
                             .clipped()
+                            .opacity(stageAppearAnimationState)
                     }
                     
                     ZStack {
@@ -143,16 +152,24 @@ struct PresentationRegularLayoutView<Content: View>: View {
 struct PresentationCompactLayoutView<Content: View>: View {
     
     var imageAppearAnimationState: Double
-    
+    var stageAppearAnimationState: Double
+
     let content: Content
     private var title: String = ""
     private var img: String = ""
 
-    init(imageAppearAnimationState: Double, @ViewBuilder content: () -> Content) {
+    init(imageAppearAnimationState: Double, stageAppearAnimationState: Double, @ViewBuilder content: () -> Content) {
         self.imageAppearAnimationState = imageAppearAnimationState
+        self.stageAppearAnimationState = stageAppearAnimationState
         self.content = content()
     }
     
+    init(imageAppearAnimationState: Double, @ViewBuilder content: () -> Content) {
+        self.imageAppearAnimationState = imageAppearAnimationState
+        self.stageAppearAnimationState = 1
+        self.content = content()
+    }
+
     var body: some View {
         let safeAreaInsets = getSafeAreaInset()
         let pimgHeight = 220.0
@@ -188,6 +205,7 @@ struct PresentationCompactLayoutView<Content: View>: View {
                             )
                             .offset(y: pimgHeight * 0.25)
                             .clipped()
+                            .opacity(stageAppearAnimationState)
                     }
 
                     ZStack {

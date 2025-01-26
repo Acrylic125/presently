@@ -1,4 +1,5 @@
 import SwiftUI
+import AVFoundation
 
 public func getSafeAreaInset() -> EdgeInsets {
     let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene
@@ -13,5 +14,21 @@ public func getSafeAreaInset() -> EdgeInsets {
     return safeAreaInsets
 }
 
-public let HapticsImpactLight = UIImpactFeedbackGenerator(style: .light)
-public let HapticsImpactMedium = UIImpactFeedbackGenerator(style: .medium)
+public struct Haptics {
+    let light = UIImpactFeedbackGenerator(style: .light)
+    let medium = UIImpactFeedbackGenerator(style: .medium)
+
+    init() {
+        light.prepare()
+        medium.prepare()
+        
+        do {
+            try AVAudioSession.sharedInstance().setAllowHapticsAndSystemSoundsDuringRecording(true)
+        } catch {
+            print("Failed to enable haptics during system recording")
+            print(error)
+        }
+    }
+}
+
+//public let AppHaptics = Haptics()

@@ -123,49 +123,6 @@ public struct LoadingSpinner: View {
                 degree = 270 + 360
                 spinnerLength = 0
             }
-        //        Circle()
-//            .trim(from: 0.0, to: spinnerLength)
-//            .stroke(
-//                LinearGradient(
-//                    colors: [AppColors.Primary500.color, AppColors.Primary500.color],
-//                    startPoint: .topLeading,
-//                    endPoint: .bottomTrailing
-//                ),
-//                style: StrokeStyle(
-//                    lineWidth: 8.0,
-//                    lineCap: .round,
-//                    lineJoin: .round
-//                )
-//            )
-//            .frame(width: 60, height: 60)
-//            .rotationEffect(Angle(degrees: degree))
-//            .animation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true), value: degree)
-//            .onAppear {
-//                withAnimation {
-//                    degree = 630
-//                    spinnerLength = 1.0
-//                }
-//            }
     }
     
-//    public var body: some View {
-//        Circle()
-//            .trim(from: 0.0,to: spinnerLength)
-//            .stroke(
-//                LinearGradient(
-//                    colors: [AppColors.Primary500.color,
-//                             AppColors.Primary500.color],
-//                    startPoint: .topLeading, endPoint: .bottomTrailing
-//                ),
-//                style: StrokeStyle(lineWidth: 8.0,lineCap: .round, lineJoin:.round)
-//            )
-//            .animation(Animation.easeIn(duration: 1.5).repeatForever(autoreverses: true))
-//            .frame(width: 60,height: 60)
-//            .rotationEffect(Angle(degrees: Double(degree)))
-//            .animation(Animation.linear(duration: 1).repeatForever(autoreverses: false))
-//            .onAppear{
-//                degree = 270 + 360
-//                spinnerLength = 0
-//            }
-//    }
 }

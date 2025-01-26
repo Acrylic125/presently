@@ -111,7 +111,6 @@ struct PresentationViewCloseButton: View {
                 Spacer()
                 Button(action: {
                     onClose()
-                    HapticsImpactLight.impactOccurred()
                 }) {
                     HStack {
                         Image(systemName: "multiply")
