@@ -26,7 +26,21 @@ struct PresentationPacingData: Identifiable {
     }
 }
 
-public struct ResultsRegularView: View {
+@Observable
+final class ResultsViewModel {
+    var appearTransitionWorkItem: DispatchWorkItem? = nil
+    var appearTransitionState: Double = 0
+    
+    var cell1AppearTransitionState: Double = 0
+    var cell2AppearTransitionState: Double = 0
+    var cell3AppearTransitionState: Double = 0
+    
+    var transcriptAppearTransitionState: Double = 0
+    
+    var chartAppearTransitionState: Double = 0
+}
+
+public struct ResultsContentView: View {
     let size: AppContentSize
     let title: String;
     let pacingData: [PresentationPacingData]
@@ -34,11 +48,12 @@ public struct ResultsRegularView: View {
         .init(title: "Hello World", img: "playground", duration: 60_000_000, content: "LLorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.orem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."),
         .init(title: "Hello 2", img: "playground", duration: 3_000_000, content: "LLorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod")
     ]
+    @Binding var viewModel: ResultsViewModel
 
     private var areaBackground: Gradient {
         return Gradient(colors: [AppColors.Primary500.color, AppColors.Primary500.color.opacity(0.1)])
     }
-
+    
     public var body: some View {
         let maxTimestamp = pacingData.map { $0.timestamp }.max() ?? 0
         let intervalPoints = Array(stride(from: 0, through: maxTimestamp, by: maxTimestamp / 4))
@@ -103,6 +118,14 @@ public struct ResultsRegularView: View {
                                 .fill(AppColors.Gray900.color)
                                 .stroke(AppColors.Gray700.color, lineWidth: 1)
                         )
+                        .opacity(viewModel.cell2AppearTransitionState)
+                        .scaleEffect(viewModel.cell2AppearTransitionState)
+                        .onAppear() {
+                            withAnimation(.easeInOut(duration: 0.5).delay(0.15)) {
+                                viewModel.cell2AppearTransitionState = 1
+                            }
+                        }
+
                     let wpmCell = VStack(alignment: .leading, spacing: containerContentSpacing) {
                         if size == .large {
                             Spacer()
@@ -134,6 +157,13 @@ public struct ResultsRegularView: View {
                                 .fill(AppColors.Gray900.color)
                                 .stroke(AppColors.Gray700.color, lineWidth: 1)
                         )
+                        .opacity(viewModel.cell3AppearTransitionState)
+                        .scaleEffect(viewModel.cell3AppearTransitionState)
+                        .onAppear() {
+                            withAnimation(.easeInOut(duration: 0.5).delay(0.3)) {
+                                viewModel.cell3AppearTransitionState = 1
+                            }
+                        }
 
                     GridRow {
                         VStack(alignment: .leading) {
@@ -199,7 +229,18 @@ public struct ResultsRegularView: View {
                                 .fill(AppColors.Gray900.color)
                                 .stroke(AppColors.Gray700.color, lineWidth: 1)
                         )
-                        
+                        .opacity(viewModel.cell1AppearTransitionState)
+                        .scaleEffect(viewModel.cell1AppearTransitionState)
+                        .onAppear() {
+                            withAnimation(.easeInOut(duration: 0.5)) {
+                                viewModel.cell1AppearTransitionState = 1
+                            }
+                            
+                            withAnimation(.easeInOut(duration: 0.5).delay(0.5)) {
+                                viewModel.chartAppearTransitionState = 1
+                            }
+                        }
+
                         if size == .large {
                             Grid(
                                 horizontalSpacing: gridSpacing,
@@ -339,7 +380,13 @@ public struct ResultsRegularView: View {
                         
                     }
                 }
-                
+                .opacity(viewModel.transcriptAppearTransitionState)
+                .onAppear() {
+                    withAnimation(.easeInOut(duration: 1)) {
+                        viewModel.transcriptAppearTransitionState = 1
+                    }
+                }
+
             }
             .padding(.top, 16)
 
@@ -348,37 +395,24 @@ public struct ResultsRegularView: View {
             maxWidth: .infinity,
             maxHeight: .infinity
         )
+        
+        PresentationViewCloseButton(onClose: self.onClose)
+            .onAppear() {
+//                animateIn()
+            }
+            .onDisappear() {
+//                speechRecognizer.stop()
+            }
 
     }
 }
-
-struct SampleRow: View {
-    let id: Int
-
-    var body: some View {
-        let m: Double = Double(id % 3)
-        VStack {
-            Text("Row \(id)")
-                .foregroundStyle(Color.white)
-        }
-        .frame(
-            height: (m + 1.0) * 20.0
-        )
-        .background(m == 0 ? Color.blue : Color.yellow)
-    }
-
-    init(id: Int) {
-        print("Loading row \(id)")
-        self.id = id
-    }
-}
-
 
 public struct ResultsView: View {
     let title: String;
     
     @State var pacingData = PresentationPacingData.mockData()
-    
+    @State var viewModel = ResultsViewModel()
+
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
     
     public var body: some View {
@@ -387,18 +421,28 @@ public struct ResultsView: View {
         ZStack(alignment: .topLeading) {
             ScrollView {
                 VStack {
-                    VStack(alignment: .leading, spacing: 24) {
-                        if (horizontalSizeClass == .compact) {
-                            ResultsRegularView(size: .small, title: title, pacingData: pacingData)
-                        } else {
-                            ResultsRegularView(size: .large, title: title, pacingData: pacingData)
-                        }
+                    if (horizontalSizeClass == .compact) {
+                        ResultsContentView(
+                            size: .small,
+                            title: title,
+                            pacingData: pacingData,
+                            viewModel: $viewModel
+                        )
+                    } else {
+                        ResultsContentView(
+                            size: .large,
+                            title: title,
+                            pacingData: pacingData,
+                            viewModel: $viewModel
+                        )
                     }
-                    .frame(
-                        maxWidth: .infinity,
-                        maxHeight: .infinity,
-                        alignment: .leading
-                    )
+//                    VStack(alignment: .leading, spacing: 24) {
+//                    }
+//                    .frame(
+//                        maxWidth: .infinity,
+//                        maxHeight: .infinity,
+//                        alignment: .leading
+//                    )
                 }
                 .safeAreaPadding(safeAreaInsets)
                 .padding(.horizontal, 24)
@@ -412,6 +456,23 @@ public struct ResultsView: View {
         .ignoresSafeArea()
         .navigationBarBackButtonHidden()
         .background(AppColors.Gray950.color)
+        .onAppear() {
+            animateIn()
+        }
+    }
+    
+    func animateIn() {
+        if (viewModel.appearTransitionWorkItem != nil) {
+            viewModel.appearTransitionWorkItem!.cancel()
+        }
+        
+        viewModel.appearTransitionState = 0
+        viewModel.appearTransitionWorkItem = DispatchWorkItem {
+            withAnimation(.easeIn(duration: 3)) {
+                self.viewModel.appearTransitionState = 1
+            }
+        }
+        DispatchQueue.main.async(execute: viewModel.appearTransitionWorkItem!)
     }
 
 }
