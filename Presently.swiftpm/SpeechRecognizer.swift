@@ -47,8 +47,9 @@ final public class SpeechRecgonizer: ObservableObject {
     @Published var transcriptions: [PresentationSessionTranscript] = []
     @Published var state: SpeechRecognizerState = .inactive
     @Published var error: Error?
-    
+
     private var startStopTask: Task<(), Error>?
+    private var checkpointIdToAdd: String?
     
     init() {
         Task {
@@ -81,16 +82,17 @@ final public class SpeechRecgonizer: ObservableObject {
     @MainActor public func clockPart(
         partId: String
     ) {
-        if self.transcriptions.count <= 0 {
-            print("No existing checkpoints found despite clocking in part")
-            return
-        }
-        self.transcriptions[self.transcriptions.count - 1].checkpoints.append(
-            .init(
-                partId: partId,
-                startTime: Int(Date().timeIntervalSince1970 * 1_000)
-            )
-        )
+        self.checkpointIdToAdd = partId
+//        if self.transcriptions.count <= 0 {
+//            print("No existing checkpoints found despite clocking in part")
+//            return
+//        }
+//        self.transcriptions[self.transcriptions.count - 1].checkpoints.append(
+//            .init(
+//                partId: partId,
+//                startTime: Int(Date().timeIntervalSince1970 * 1_000)
+//            )
+//        )
     }
 
     @MainActor public func initSessionTranscriptions(
@@ -227,6 +229,12 @@ final public class SpeechRecgonizer: ObservableObject {
         var cur = self.transcriptions[self.transcriptions.count - 1]
         cur.bestTranscript = bestTranscription
         cur.segments = bestTranscription.segments
+        
+        if let checkpointIdToAdd {
+            cur.checkpoints.append(
+                .init(partId: checkpointIdToAdd, startTime: Int(Date().timeIntervalSince1970 * 1_000))
+            )
+        }
         
         // Clone to publicize change
         var newSessions: [PresentationSessionTranscript] = []

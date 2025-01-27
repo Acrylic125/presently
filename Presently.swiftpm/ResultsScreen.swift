@@ -294,7 +294,7 @@ public struct ResultsContentView: View {
                     .font(.system(size: headerFontSize.rawValue, weight: .medium))
                 
                 LazyVStack(spacing: gridSpacing) {
-                    ForEach(parts, id: \.self.title) { part in
+                    ForEach(Array(parts.enumerated()), id: \.offset) { index, part in
                         if size == .large {
                             HStack(spacing: 48) {
                                 VStack(spacing: 8) {
@@ -421,7 +421,8 @@ extension Binding {
 
 public struct ResultsView: View {
     let title: String;
-    
+    let presentationParts: [PresentationPart];
+
     @State var pacingData = PresentationPacingData.mockData()
     @State var viewModel = ResultsViewModel()
     @ObservedObject var speechRecognizer: SpeechRecgonizer
@@ -473,23 +474,92 @@ public struct ResultsView: View {
         .ignoresSafeArea()
         .navigationBarBackButtonHidden()
         .background(AppColors.Gray950.color)
-//        .onChange(of: $speechRecognizer.transcriptions) { newValue in
-//            print("========")
-//            print("Name changed to \(speechRecognizer.transcriptions[0].bestTranscript)!")
-//        }
         .onAppear() {
-//            print(speechRecognizer.transcriptions[0].bestTranscript)
-//            print("============")
-//            for s in speechRecognizer.transcriptions[0].bestTranscript.segments {
-//                print(s)
-//            }
             speechRecognizer.$transcriptions.sink { value in
-                print("changed to \(value)!")
+                var transcriptionParts: [PresentationTranscriptPart] = []
+                for transcription in value {
+                    let checkpoints = transcription.checkpoints
+                    if checkpoints.count <= 0 {
+                        print("No checkpoints found, skipping transcription part")
+                        continue
+                    }
+                    
+                    let baseStartTime: Double = Double(transcription.checkpoints[0].startTime)
+                    var checkpointCursor = 0
+                    var contentAcc = ""
+                    for segment in transcription.segments {
+                        let checkpoint = checkpointCursor < checkpoints.count ? checkpoints[checkpointCursor] : nil
+                        let checkpointCursorNext = checkpointCursor + 1
+                        if let checkpoint, checkpointCursorNext < checkpoints.count {
+                            let nextCheckpoint = checkpoints[checkpointCursorNext]
+                            if ((baseStartTime + (segment.timestamp * 1_000)) >= Double(nextCheckpoint.startTime)) {
+//                                print("New checkpoint \(checkpointCursor) -> \(checkpointCursorNext)")
+                                let checkpointPart = self.presentationParts.first { v in
+                                    return checkpoint.partId == v.id
+                                }
+                                let partContent = contentAcc
+                                contentAcc = ""
+                                checkpointCursor = checkpointCursorNext
+                                guard let checkpointPart else {
+                                    print("Presentation part of id, \(checkpoint.partId) not found")
+                                    continue
+                                }
+                                transcriptionParts.append(
+                                    .init(
+                                        title: checkpointPart.title,
+                                        img: checkpointPart.img,
+                                        duration: Double(nextCheckpoint.startTime - checkpoint.startTime),
+                                        content: partContent
+                                    )
+                                )
+                            }
+                        }
+//                        print(segment.substring)
+                        if contentAcc == "" {
+                            contentAcc = segment.substring
+                        } else {
+                            contentAcc = contentAcc + " " + segment.substring
+                        }
+                        print("T = \(segment.timestamp), U = \(segment.duration)")
+                    }
+                    
+                    let checkpoint = checkpointCursor < checkpoints.count ? checkpoints[checkpointCursor] : nil
+                    if let checkpoint {
+                        let checkpointPart = self.presentationParts.first { v in
+                            return checkpoint.partId == v.id
+                        }
+                        guard let checkpointPart else {
+                            print("Presentation part of id, \(checkpoint.partId) not found")
+                            continue
+                        }
+                        transcriptionParts.append(
+                            .init(
+                                title: checkpointPart.title,
+                                img: checkpointPart.img,
+                                duration: 1000, // Double(nextCheckpoint.startTime - checkpoint.startTime),
+                                content: contentAcc
+                            )
+                        )
+                    } else {
+                        print("No checkpoint?")
+                    }
+                    
+                    print("Checkpoints:")
+                    print(checkpoints)
+                    checkpointCursor = 0
+                    //                    let baseStartTime = Double(transcription.checkpoints[0].startTime)
+                    for checkpoint in checkpoints {
+                        let t = Double(checkpoint.startTime) - baseStartTime
+                        print("\(t / 1000)s in")
+                    }
+                }
+                
+                self.viewModel.transcriptParts = transcriptionParts
             }.store(in: &self.cancellableBag)
-            viewModel.transcriptParts = [
-                .init(title: "Hello World", img: "playground", duration: 60_000_000, content: "LLorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.orem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."),
-                .init(title: "Hello 2", img: "playground", duration: 3_000_000, content: "LLorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod")
-            ]
+//            viewModel.transcriptParts = [
+//                .init(title: "Hello World", img: "playground", duration: 60_000_000, content: "LLorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.orem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."),
+//                .init(title: "Hello 2", img: "playground", duration: 3_000_000, content: "LLorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod")
+//            ]
             viewModel.pacingData = PresentationPacingData.mockData()
             animateIn()
         }

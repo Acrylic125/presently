@@ -171,6 +171,7 @@ struct PresentationView: View {
             } else if (viewType == .Results) {
                 ResultsView(
                     title: title,
+                    presentationParts: AppPresentations.PlaygroundObservationsPresentation.parts,
                     speechRecognizer: speechRecognizer
                 )
             } else {
