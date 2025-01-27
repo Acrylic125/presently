@@ -49,6 +49,7 @@ struct PresentationOverviewContentView: View {
 struct PresentationOverviewView: View {
     let title: String;
     let context: [StringToken];
+    let firstPartId: String
     
     @Binding var viewType: PresentationViewType
     @State var viewModel = PresentationOverviewViewModel()
@@ -101,6 +102,7 @@ struct PresentationOverviewView: View {
             .size(buttonSize)
             
             AppButton(action: {
+                speechRecognizer.initSessionTranscriptions(partId: firstPartId)
                 speechRecognizer.start()
                 goTo(viewType: .Present)
             }) {

@@ -1,5 +1,6 @@
 import SwiftUI
 import Charts
+import Combine
 
 public struct PresentationTranscriptPart {
     let title: String
@@ -7,6 +8,11 @@ public struct PresentationTranscriptPart {
     let duration: Double
     let content: String
 }
+
+//@Observable
+//public final class PresentationResultsViewModel {
+//    
+//}
 
 struct PresentationPacingData: Identifiable {
     let id = UUID()
@@ -28,6 +34,9 @@ struct PresentationPacingData: Identifiable {
 
 @Observable
 final class ResultsViewModel {
+    var pacingData: [PresentationPacingData] = []
+    var transcriptParts: [PresentationTranscriptPart] = []
+
     var appearTransitionWorkItem: DispatchWorkItem? = nil
     var appearTransitionState: Double = 0
     
@@ -43,11 +52,6 @@ final class ResultsViewModel {
 public struct ResultsContentView: View {
     let size: AppContentSize
     let title: String;
-    let pacingData: [PresentationPacingData]
-    let parts: [PresentationTranscriptPart] = [
-        .init(title: "Hello World", img: "playground", duration: 60_000_000, content: "LLorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.orem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."),
-        .init(title: "Hello 2", img: "playground", duration: 3_000_000, content: "LLorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod")
-    ]
     @Binding var viewModel: ResultsViewModel
 
     private var areaBackground: Gradient {
@@ -55,6 +59,9 @@ public struct ResultsContentView: View {
     }
     
     public var body: some View {
+        let pacingData = viewModel.pacingData
+        let parts = viewModel.transcriptParts
+        
         let maxTimestamp = pacingData.map { $0.timestamp }.max() ?? 0
         let intervalPoints = Array(stride(from: 0, through: maxTimestamp, by: maxTimestamp / 4))
         
@@ -395,9 +402,21 @@ public struct ResultsContentView: View {
             maxWidth: .infinity,
             maxHeight: .infinity
         )
-        
     }
     
+}
+
+extension Binding {
+    @MainActor
+    func onChange(_ handler: @escaping (Value) -> Void) -> Binding<Value> {
+        Binding(
+            get: { self.wrappedValue },
+            set: { newValue in
+                self.wrappedValue = newValue
+                handler(newValue)
+            }
+        )
+    }
 }
 
 public struct ResultsView: View {
@@ -405,38 +424,34 @@ public struct ResultsView: View {
     
     @State var pacingData = PresentationPacingData.mockData()
     @State var viewModel = ResultsViewModel()
+    @ObservedObject var speechRecognizer: SpeechRecgonizer
 
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
     @Environment(\.dismiss) private var dismiss
     
+    @State var cancellableBag = Set<AnyCancellable>()
+
     public var body: some View {
         let safeAreaInsets = getSafeAreaInset()
         
         ZStack(alignment: .topLeading) {
             ScrollView {
                 VStack {
-                    if (horizontalSizeClass == .compact) {
-                        ResultsContentView(
-                            size: .small,
-                            title: title,
-                            pacingData: pacingData,
-                            viewModel: $viewModel
-                        )
-                    } else {
-                        ResultsContentView(
-                            size: .large,
-                            title: title,
-                            pacingData: pacingData,
-                            viewModel: $viewModel
-                        )
+                    if viewModel.transcriptParts.count > 0 && viewModel.pacingData.count > 0 {
+                        if (horizontalSizeClass == .compact) {
+                            ResultsContentView(
+                                size: .small,
+                                title: title,
+                                viewModel: $viewModel
+                            )
+                        } else {
+                            ResultsContentView(
+                                size: .large,
+                                title: title,
+                                viewModel: $viewModel
+                            )
+                        }
                     }
-//                    VStack(alignment: .leading, spacing: 24) {
-//                    }
-//                    .frame(
-//                        maxWidth: .infinity,
-//                        maxHeight: .infinity,
-//                        alignment: .leading
-//                    )
                 }
                 .safeAreaPadding(safeAreaInsets)
                 .padding(.horizontal, 24)
@@ -458,7 +473,24 @@ public struct ResultsView: View {
         .ignoresSafeArea()
         .navigationBarBackButtonHidden()
         .background(AppColors.Gray950.color)
+//        .onChange(of: $speechRecognizer.transcriptions) { newValue in
+//            print("========")
+//            print("Name changed to \(speechRecognizer.transcriptions[0].bestTranscript)!")
+//        }
         .onAppear() {
+//            print(speechRecognizer.transcriptions[0].bestTranscript)
+//            print("============")
+//            for s in speechRecognizer.transcriptions[0].bestTranscript.segments {
+//                print(s)
+//            }
+            speechRecognizer.$transcriptions.sink { value in
+                print("changed to \(value)!")
+            }.store(in: &self.cancellableBag)
+            viewModel.transcriptParts = [
+                .init(title: "Hello World", img: "playground", duration: 60_000_000, content: "LLorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.orem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."),
+                .init(title: "Hello 2", img: "playground", duration: 3_000_000, content: "LLorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod")
+            ]
+            viewModel.pacingData = PresentationPacingData.mockData()
             animateIn()
         }
         

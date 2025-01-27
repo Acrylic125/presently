@@ -32,8 +32,9 @@ public struct PresentationCheckpoint {
 }
 
 public struct PresentationSessionTranscript {
-    var transcriptions: [SFTranscription] = []
-    var checkpoints: [PresentationCheckpoint] = []
+    var bestTranscript: SFTranscription
+    var segments: [SFTranscriptionSegment]
+    var checkpoints: [PresentationCheckpoint]
 }
 
 final public class SpeechRecgonizer: ObservableObject {
@@ -43,7 +44,6 @@ final public class SpeechRecgonizer: ObservableObject {
     private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
     private var recognitionTask: SFSpeechRecognitionTask?
     
-//    @Published var transcriptions: [SFTranscription] = []
     @Published var transcriptions: [PresentationSessionTranscript] = []
     @Published var state: SpeechRecognizerState = .inactive
     @Published var error: Error?
@@ -63,7 +63,10 @@ final public class SpeechRecgonizer: ObservableObject {
                 transcribe(error)
             }
         }
-        self.speechRecognizer = SFSpeechRecognizer(locale: Locale(identifier: "en-US"))
+        let speechRecognizer = SFSpeechRecognizer(locale: Locale(identifier: "en-US"))
+        speechRecognizer!.defaultTaskHint = .dictation
+        
+        self.speechRecognizer = speechRecognizer
     }
     
     @MainActor private func setState(state: SpeechRecognizerState) {
@@ -95,7 +98,8 @@ final public class SpeechRecgonizer: ObservableObject {
     ) {
         self.transcriptions = [
             .init(
-                transcriptions: [],
+                bestTranscript: .init(),
+                segments: [],
                 checkpoints: [
                     .init(
                         partId: partId,
@@ -199,17 +203,38 @@ final public class SpeechRecgonizer: ObservableObject {
         }
         
         if let result {
-            transcribe(result.bestTranscription.formattedString, result.transcriptions)
+            transcribe(result.bestTranscription.formattedString, result.bestTranscription, result.isFinal)
         }
     }
     
-    private func transcribe(_ message: String, _ transcriptions: [SFTranscription] ) {
-        print(message)
+    private func transcribe(_ message: String, _ bestTranscription: SFTranscription, _ isFinal: Bool) {
         if self.transcriptions.count <= 0 {
             print("No existing transcriptions found despite speech recognizer running")
             return
         }
-        self.transcriptions[self.transcriptions.count - 1].transcriptions = transcriptions
+//        print("--- \(isFinal)")
+//        print(bestTranscription)
+//        print("---")
+//        if isFinal {
+//            return
+//        }
+//        print("-----")
+//        print(bestTranscription)
+        if (bestTranscription.segments.first { $0.confidence > 0 } == nil) {
+            print("No")
+            return
+        }
+        var cur = self.transcriptions[self.transcriptions.count - 1]
+        cur.bestTranscript = bestTranscription
+        cur.segments = bestTranscription.segments
+        
+        // Clone to publicize change
+        var newSessions: [PresentationSessionTranscript] = []
+        for session in self.transcriptions {
+            newSessions.append(session)
+        }
+        newSessions[newSessions.count - 1] = cur
+        self.transcriptions = newSessions
     }
 
     private func transcribe(_ error: Error) {

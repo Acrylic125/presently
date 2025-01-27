@@ -61,9 +61,9 @@ struct ContentView: View {
                     .foregroundStyle(AppColors.Gray50.color)
                     .fontWeight(.bold)
                     .font(.title)
-                NavigationLink("Results") {
-                    ResultsView(title: "Playground Observations")
-                }
+//                NavigationLink("Results") {
+//                    ResultsView(title: "Playground Observations")
+//                }
                 NavigationLink("Presentation") {
                     PresentationView(title: "Playground Observations")
                 }

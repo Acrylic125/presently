@@ -157,6 +157,7 @@ struct PresentationView: View {
                 PresentationOverviewView(
                     title: title,
                     context: AppPresentations.PlaygroundObservationsPresentation.context,
+                    firstPartId: AppPresentations.PlaygroundObservationsPresentation.parts[0].id,
                     viewType: $viewType,
                     speechRecognizer: speechRecognizer
                 )
@@ -169,7 +170,8 @@ struct PresentationView: View {
                 )
             } else if (viewType == .Results) {
                 ResultsView(
-                    title: title
+                    title: title,
+                    speechRecognizer: speechRecognizer
                 )
             } else {
                 PresentationPresentView(

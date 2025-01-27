@@ -21,7 +21,7 @@ final class PresentationPresentViewModel {
     var page = 0;
     var nPage = 0;
     var pageTransitionState: Double = 1
-    var isPageTransitioning: Bool = false;
+    var isPageTransitioning: Bool = false
     
     func animateExpand() {
         self.hintsExpandTransitionState = 0
@@ -443,8 +443,13 @@ struct PresentationPresentView: View {
             size: toolbarSize
         ) {
             AppButton(action: {
-                speechRecognizer.clockPart(partId: presentationPart.id)
-                viewModel.goToPage(newPage: page - 1)
+                let newIndex = page - 1
+                if (newIndex < 0) {
+                    return
+                }
+                let newPresentationPart = presentationParts[newIndex]
+                speechRecognizer.clockPart(partId: newPresentationPart.id)
+                viewModel.goToPage(newPage: newIndex)
             }) {
                 HStack {
                     Image(systemName: "arrow.left")
@@ -464,8 +469,13 @@ struct PresentationPresentView: View {
                 .foregroundColor(AppColors.Gray400.color)
             
             AppButton(action: {
-                speechRecognizer.clockPart(partId: presentationPart.id)
-                viewModel.goToPage(newPage: page + 1)
+                let newIndex = page + 1
+                if (newIndex >= presentationParts.count) {
+                    return
+                }
+                let newPresentationPart = presentationParts[newIndex]
+                speechRecognizer.clockPart(partId: newPresentationPart.id)
+                viewModel.goToPage(newPage: newIndex)
             }) {
                 HStack {
                     if (horizontalSizeClass == .regular) {
