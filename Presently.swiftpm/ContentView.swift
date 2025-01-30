@@ -2,86 +2,178 @@ import SwiftUI
 import AVFoundation
 import Charts
 
-//struct MeetingView: View {
-//    @StateObject var speechRecognizer = SpeechRecognizer()
-//    
-//    var body: some View {
-//        ZStack {
-//            RoundedRectangle(cornerRadius: 16.0)
-//                .fill(.green)
-//            VStack {
-//                Button("Button title") {
-//                    print(speechRecognizer.transcriptions)
-//                    print(speechRecognizer.transcript)
-//                }
-//            }
-//        }
-//        .padding()
-//        .foregroundColor(.black)
-//        .onAppear {
-//            startScrum()
-//        }
-//        .onDisappear {
-//        }
-//        .navigationBarTitleDisplayMode(.inline)
-//    }
-//    
-//    private func startScrum() {
-////        scrumTimer.reset(lengthInMinutes: scrum.lengthInMinutes, attendees: scrum.attendees)
-////        scrumTimer.speakerChangedAction = {
-////            player.seek(to: .zero)
-////            player.play()
-////        }
-//        speechRecognizer.resetTranscript()
-//        speechRecognizer.startTranscribing()
-////        scrumTimer.startScrum()
-//    }
-//    
-//    private func endScrum() {
-//        speechRecognizer.stopTranscribing()
-//    
-////        scrumTimer.stopScrum()
-////        let newHistory = History(attendees: scrum.attendees)
-////        scrum.history.insert(newHistory, at: 0)
-//    }
-//}
+struct PresentationSelectionView: View {
+    
+    let size: AppContentSize
+    
+    @State var All: [Presentation] = [
+        AppPresentations.PlaygroundObservationsPresentation
+    ]
+    
+    var body: some View {
+        let containerPadding: CGFloat = size == .large ? 24 : 12
+        let containerSpacing: CGFloat = size == .large ? 12 : 8
+        let containerBorderRadius: CGFloat = size == .large ? 16 : 8
+        let containerTextSize: AppFontSize = size == .large ? .xl2 : .lg
+        
+        if size == .large {
+            let gridCols = 3
+            let gridRows: Int = (All.count / gridCols) + 1
+            
+            Grid(
+                horizontalSpacing: 24,
+                verticalSpacing: 24
+            ) {
+                ForEach(0..<gridRows, id: \.self) { rowIndex in
+                    GridRow {
+                        ForEach(0..<gridCols, id: \.self) { colIndex in
+                            let presentationIndex = gridRows * rowIndex + colIndex
+                            if presentationIndex >= All.count {
+                                VStack {
+                                }
+                                .background(Color.blue)
+                                .frame(
+                                    maxWidth: .infinity,
+                                    minHeight: 40
+                                )
+                            } else {
+                                let presentation = All[presentationIndex]
+                                NavigationLink(
+                                    destination: PresentationView(title: presentation.title)
+                                ) {
+                                    VStack(
+                                        spacing: 24
+                                    ) {
+                                        VStack {
+                                            Image(presentation.imgRegular)
+                                                .resizable()
+                                                .scaledToFit()
+                                        }
+                                        .aspectRatio(4/3, contentMode: .fit)
+                                        VStack {
+                                            Text(presentation.title)
+                                                .frame(
+                                                    maxWidth: 440,
+                                                    alignment: .leading
+                                                )
+                                                .foregroundStyle(AppColors.Gray50.color)
+                                                .font(.system(size: containerTextSize.rawValue, weight: .black))
+                                        }
+                                        .padding(.horizontal, containerPadding)
+                                        .padding(.bottom, containerPadding)
+                                    }
+                                    .frame(
+                                        maxWidth: .infinity
+                                    )
+                                    .background(
+                                        RoundedRectangle(cornerRadius: containerBorderRadius)
+                                            .fill(AppColors.Gray900.color)
+                                            .stroke(AppColors.Gray700.color, lineWidth: 1)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        } else {
+            VStack(
+                alignment: .leading,
+                spacing: 24
+            ) {
+                ForEach(0..<All.count, id: \.self) { index in
+                    let presentation = All[index]
+                    
+                    NavigationLink(
+                        destination: PresentationView(title: presentation.title)
+                    ) {
+                        HStack(
+                            spacing: 24
+                        ) {
+                            VStack {
+                                Image(presentation.imgCompact)
+                                    .resizable()
+                                    .scaledToFit()
+                            }
+                            .aspectRatio(1/1, contentMode: .fit)
+                            VStack(alignment: .leading) {
+                                Text(presentation.title)
+                                    .frame(
+                                        maxWidth: 440,
+                                        alignment: .leading
+                                    )
+                                    .foregroundStyle(AppColors.Gray50.color)
+                                    .font(.system(size: containerTextSize.rawValue, weight: .black))
+                            }
+                            .padding(.trailing, containerPadding)
+                        }
+                        .frame(
+                            maxWidth: .infinity
+                        )
+                        .background(
+                            RoundedRectangle(cornerRadius: containerBorderRadius)
+                                .fill(AppColors.Gray900.color)
+                                .stroke(AppColors.Gray700.color, lineWidth: 1)
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: containerBorderRadius))
+                    }
+                }
+            }
+            .frame(
+                maxWidth: .infinity
+            )
+        }
 
-
-//struct MeetingView_Previews: PreviewProvider {
-//    static var previews: some View {
-//        MeetingView(scrum: .constant(DailyScrum.sampleData[0]))
-//    }
-//}
+    }
+}
 
 struct ContentView: View {
+    
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
+    
     var body: some View {
-        VStack {
-            VStack(alignment: .leading) {
-                Text("Get Practicing!")
-                    .foregroundStyle(AppColors.Gray50.color)
-                    .fontWeight(.bold)
-                    .font(.title)
-//                NavigationLink("Results") {
-//                    ResultsView(title: "Playground Observations")
-//                }
-                NavigationLink("Presentation") {
-                    PresentationView(title: "Playground Observations")
+        let safeAreaInsets = getSafeAreaInset()
+        
+        let size: AppContentSize = horizontalSizeClass == .regular ? .large : .small
+        
+        let headerTextSize: AppFontSize = horizontalSizeClass == .regular ? .xl4 : .xl3
+
+        VStack(alignment: .leading) {
+            ScrollView {
+                VStack(alignment: .leading) {
+                    Text("Get Practicing")
+                        .frame(
+                            maxWidth: 440,
+                            alignment: .leading
+                        )
+                        .foregroundStyle(AppColors.Gray50.color)
+                        .font(.system(size: headerTextSize.rawValue, weight: .black))
+                    
+                    PresentationSelectionView(
+                        size: size
+                    )
+                    .frame(
+                        maxHeight: .infinity,
+                        alignment: .leading
+                    )
                 }
-                Spacer()
+                .frame(
+                    maxWidth: .infinity,
+                    maxHeight: .infinity,
+                    alignment: .leading
+                )
             }
             .frame(
                 maxWidth: .infinity,
                 maxHeight: .infinity,
                 alignment: .leading
             )
+            .safeAreaPadding(safeAreaInsets)
+            .padding(.horizontal, 24)
+            .padding(.vertical, 24)
         }
+        .ignoresSafeArea()
         .navigationBarBackButtonHidden()
-        .padding(.horizontal, 24)
-        .padding(.vertical, 24)
-        .frame(
-            maxWidth: .infinity,
-            maxHeight: .infinity
-        )
         .background(AppColors.Gray950.color)
     }
 }

@@ -477,84 +477,103 @@ public struct ResultsView: View {
         .onAppear() {
             speechRecognizer.$transcriptions.sink { value in
                 var transcriptionParts: [PresentationTranscriptPart] = []
-                for transcription in value {
-                    let checkpoints = transcription.checkpoints
-                    if checkpoints.count <= 0 {
-                        print("No checkpoints found, skipping transcription part")
+               
+                for transcriptionRawPart in value {
+                    let bestTranscript = transcriptionRawPart.bestTranscript
+                    if bestTranscript.segments.count <= 0 {
+                        print("No segments found.")
                         continue
                     }
+                    let lastSegment = bestTranscript.segments[bestTranscript.segments.count - 1]
+                    let duration = lastSegment.timestamp + lastSegment.duration
                     
-                    let baseStartTime: Double = Double(transcription.checkpoints[0].startTime)
-                    var checkpointCursor = 0
-                    var contentAcc = ""
-                    for segment in transcription.segments {
-                        let checkpoint = checkpointCursor < checkpoints.count ? checkpoints[checkpointCursor] : nil
-                        let checkpointCursorNext = checkpointCursor + 1
-                        if let checkpoint, checkpointCursorNext < checkpoints.count {
-                            let nextCheckpoint = checkpoints[checkpointCursorNext]
-                            if ((baseStartTime + (segment.timestamp * 1_000)) >= Double(nextCheckpoint.startTime)) {
-//                                print("New checkpoint \(checkpointCursor) -> \(checkpointCursorNext)")
-                                let checkpointPart = self.presentationParts.first { v in
-                                    return checkpoint.partId == v.id
-                                }
-                                let partContent = contentAcc
-                                contentAcc = ""
-                                checkpointCursor = checkpointCursorNext
-                                guard let checkpointPart else {
-                                    print("Presentation part of id, \(checkpoint.partId) not found")
-                                    continue
-                                }
-                                transcriptionParts.append(
-                                    .init(
-                                        title: checkpointPart.title,
-                                        img: checkpointPart.img,
-                                        duration: Double(nextCheckpoint.startTime - checkpoint.startTime),
-                                        content: partContent
-                                    )
-                                )
-                            }
-                        }
-//                        print(segment.substring)
-                        if contentAcc == "" {
-                            contentAcc = segment.substring
-                        } else {
-                            contentAcc = contentAcc + " " + segment.substring
-                        }
-                        print("T = \(segment.timestamp), U = \(segment.duration)")
+                    let presentationPart = presentationParts.first { v in
+                        return transcriptionRawPart.partId == v.id
                     }
                     
-                    let checkpoint = checkpointCursor < checkpoints.count ? checkpoints[checkpointCursor] : nil
-                    if let checkpoint {
-                        let checkpointPart = self.presentationParts.first { v in
-                            return checkpoint.partId == v.id
-                        }
-                        guard let checkpointPart else {
-                            print("Presentation part of id, \(checkpoint.partId) not found")
-                            continue
-                        }
-                        transcriptionParts.append(
-                            .init(
-                                title: checkpointPart.title,
-                                img: checkpointPart.img,
-                                duration: 1000, // Double(nextCheckpoint.startTime - checkpoint.startTime),
-                                content: contentAcc
-                            )
-                        )
-                    } else {
-                        print("No checkpoint?")
-                    }
-                    
-                    print("Checkpoints:")
-                    print(checkpoints)
-                    checkpointCursor = 0
-                    //                    let baseStartTime = Double(transcription.checkpoints[0].startTime)
-                    for checkpoint in checkpoints {
-                        let t = Double(checkpoint.startTime) - baseStartTime
-                        print("\(t / 1000)s in")
-                    }
+                    transcriptionParts.append(
+                        .init(
+                            title: presentationPart?.title ?? "No Title",
+                            img: presentationPart?.img ?? "No Image",
+                            duration: duration,
+                            content: bestTranscript.formattedString)
+                    )
+                    print(duration)
                 }
                 
                 self.viewModel.transcriptParts = transcriptionParts
+
+                
+//                for transcription in value {
+//                    let baseStartTime: Double = Double(transcription.checkpoints[0].startTime)
+//                    var checkpointCursor = 0
+//                    var contentAcc = ""
+//                    for segment in transcription.segments {
+//                        let checkpoint = checkpointCursor < checkpoints.count ? checkpoints[checkpointCursor] : nil
+//                        let checkpointCursorNext = checkpointCursor + 1
+//                        if let checkpoint, checkpointCursorNext < checkpoints.count {
+//                            let nextCheckpoint = checkpoints[checkpointCursorNext]
+//                            if ((baseStartTime + (segment.timestamp * 1_000)) >= Double(nextCheckpoint.startTime)) {
+////                                print("New checkpoint \(checkpointCursor) -> \(checkpointCursorNext)")
+//                                let checkpointPart = self.presentationParts.first { v in
+//                                    return checkpoint.partId == v.id
+//                                }
+//                                let partContent = contentAcc
+//                                contentAcc = ""
+//                                checkpointCursor = checkpointCursorNext
+//                                guard let checkpointPart else {
+//                                    print("Presentation part of id, \(checkpoint.partId) not found")
+//                                    continue
+//                                }
+//                                transcriptionParts.append(
+//                                    .init(
+//                                        title: checkpointPart.title,
+//                                        img: checkpointPart.img,
+//                                        duration: Double(nextCheckpoint.startTime - checkpoint.startTime),
+//                                        content: partContent
+//                                    )
+//                                )
+//                            }
+//                        }
+////                        print(segment.substring)
+//                        if contentAcc == "" {
+//                            contentAcc = segment.substring
+//                        } else {
+//                            contentAcc = contentAcc + " " + segment.substring
+//                        }
+//                        print("T = \(segment.timestamp), U = \(segment.duration)")
+//                    }
+//                    
+//                    let checkpoint = checkpointCursor < checkpoints.count ? checkpoints[checkpointCursor] : nil
+//                    if let checkpoint {
+//                        let checkpointPart = self.presentationParts.first { v in
+//                            return checkpoint.partId == v.id
+//                        }
+//                        guard let checkpointPart else {
+//                            print("Presentation part of id, \(checkpoint.partId) not found")
+//                            continue
+//                        }
+//                        transcriptionParts.append(
+//                            .init(
+//                                title: checkpointPart.title,
+//                                img: checkpointPart.img,
+//                                duration: 1000, // Double(nextCheckpoint.startTime - checkpoint.startTime),
+//                                content: contentAcc
+//                            )
+//                        )
+//                    } else {
+//                        print("No checkpoint?")
+//                    }
+//                    
+//                    print("Checkpoints:")
+//                    print(checkpoints)
+//                    checkpointCursor = 0
+//                    //                    let baseStartTime = Double(transcription.checkpoints[0].startTime)
+//                    for checkpoint in checkpoints {
+//                        let t = Double(checkpoint.startTime) - baseStartTime
+//                        print("\(t / 1000)s in")
+//                    }
+//                }
             }.store(in: &self.cancellableBag)
 //            viewModel.transcriptParts = [
 //                .init(title: "Hello World", img: "playground", duration: 60_000_000, content: "LLorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.orem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."),

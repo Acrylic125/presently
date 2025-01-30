@@ -262,7 +262,7 @@ struct PresentationPrepareView: View {
             
             if (page >= lastPage) {
                 AppButton(action: {
-                    speechRecognizer.initSessionTranscriptions(partId: presentationParts[0].id)
+                    speechRecognizer.initSessionFrom(partId: presentationParts[0].id)
                     speechRecognizer.start()
                     goTo(viewType: .Present)
                 }) {
@@ -274,7 +274,7 @@ struct PresentationPrepareView: View {
                 )
             } else {
                 AppButton(action: {
-                    speechRecognizer.initSessionTranscriptions(partId: presentationParts[0].id)
+                    speechRecognizer.initSessionFrom(partId: presentationParts[0].id)
                     speechRecognizer.start()
                     goTo(viewType: .Present)
                 }) {

@@ -7,9 +7,12 @@ public struct PresentationPart {
 }
 
 public struct Presentation {
-    let parts: [PresentationPart]
-    let context: [StringToken]
-    let img: String
+    var id: String
+    var title: String
+    var parts: [PresentationPart]
+    var context: [StringToken]
+    var imgCompact: String
+    var imgRegular: String
 }
 
 public enum StringTokenType {
@@ -59,6 +62,8 @@ public func tokenizeStr(_ input: String) -> [StringToken] {
 
 public struct AppPresentations {
     static let PlaygroundObservationsPresentation: Presentation = Presentation(
+        id: "Playground Observations",
+        title: "Playground Observations",
         parts: [
             PresentationPart(
                 id: "1",
@@ -83,8 +88,9 @@ public struct AppPresentations {
             ),
         ],
         context: tokenizeStr("You are a <h>town council representative</h> working to improve facilities in your neighbourhood.\n \nYou visited a local playground to observe how people <h>use the space</h> and <h>identify opportunities</h> for improvement.\n \nYou will present your <h>findings and recommendations</h>."),
-        img: "pimg_full_playground_observations"
+        imgCompact: "pimg_partial_playground_observations",
+        imgRegular: "pimg_partial_playground_observations_regular"
     )
-
+    
 }
 

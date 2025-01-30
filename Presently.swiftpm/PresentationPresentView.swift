@@ -448,7 +448,8 @@ struct PresentationPresentView: View {
                     return
                 }
                 let newPresentationPart = presentationParts[newIndex]
-                speechRecognizer.clockPart(partId: newPresentationPart.id)
+                speechRecognizer.addNewTranscriptionFor(partId: newPresentationPart.id)
+                speechRecognizer.start(shouldReset: true)
                 viewModel.goToPage(newPage: newIndex)
             }) {
                 HStack {
@@ -474,7 +475,8 @@ struct PresentationPresentView: View {
                     return
                 }
                 let newPresentationPart = presentationParts[newIndex]
-                speechRecognizer.clockPart(partId: newPresentationPart.id)
+                speechRecognizer.addNewTranscriptionFor(partId: newPresentationPart.id)
+                speechRecognizer.start(shouldReset: true)
                 viewModel.goToPage(newPage: newIndex)
             }) {
                 HStack {

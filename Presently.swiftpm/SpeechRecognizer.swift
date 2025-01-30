@@ -26,15 +26,11 @@ enum RecognizerError: Error {
     }
 }
 
-public struct PresentationCheckpoint {
-    let partId: String
-    let startTime: Int
-}
-
-public struct PresentationSessionTranscript {
+public struct PresentationTranscriptRawPart {
     var bestTranscript: SFTranscription
     var segments: [SFTranscriptionSegment]
-    var checkpoints: [PresentationCheckpoint]
+    var partId: String
+    var startTime: Int
 }
 
 final public class SpeechRecgonizer: ObservableObject {
@@ -44,12 +40,11 @@ final public class SpeechRecgonizer: ObservableObject {
     private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
     private var recognitionTask: SFSpeechRecognitionTask?
     
-    @Published var transcriptions: [PresentationSessionTranscript] = []
+    @Published var transcriptions: [PresentationTranscriptRawPart] = []
     @Published var state: SpeechRecognizerState = .inactive
     @Published var error: Error?
 
     private var startStopTask: Task<(), Error>?
-    private var checkpointIdToAdd: String?
     
     init() {
         Task {
@@ -65,7 +60,6 @@ final public class SpeechRecgonizer: ObservableObject {
             }
         }
         let speechRecognizer = SFSpeechRecognizer(locale: Locale(identifier: "en-US"))
-        speechRecognizer!.defaultTaskHint = .dictation
         
         self.speechRecognizer = speechRecognizer
     }
@@ -79,37 +73,30 @@ final public class SpeechRecgonizer: ObservableObject {
         self.error = error
     }
     
-    @MainActor public func clockPart(
-        partId: String
-    ) {
-        self.checkpointIdToAdd = partId
-//        if self.transcriptions.count <= 0 {
-//            print("No existing checkpoints found despite clocking in part")
-//            return
-//        }
-//        self.transcriptions[self.transcriptions.count - 1].checkpoints.append(
-//            .init(
-//                partId: partId,
-//                startTime: Int(Date().timeIntervalSince1970 * 1_000)
-//            )
-//        )
-    }
-
-    @MainActor public func initSessionTranscriptions(
+    @MainActor public func initSessionFrom(
         partId: String
     ) {
         self.transcriptions = [
             .init(
                 bestTranscript: .init(),
                 segments: [],
-                checkpoints: [
-                    .init(
-                        partId: partId,
-                        startTime: Int(Date().timeIntervalSince1970 * 1_000)
-                    )
-                ]
+                partId: partId,
+                startTime: Int(Date().timeIntervalSince1970)
             )
         ]
+    }
+
+    @MainActor public func addNewTranscriptionFor(
+        partId: String
+    ) {
+        self.transcriptions.append(
+            .init(
+                bestTranscript: .init(),
+                segments: [],
+                partId: partId,
+                startTime: Int(Date().timeIntervalSince1970)
+            )
+        )
     }
 
     func start(shouldReset: Bool = true) {
@@ -214,30 +201,17 @@ final public class SpeechRecgonizer: ObservableObject {
             print("No existing transcriptions found despite speech recognizer running")
             return
         }
-//        print("--- \(isFinal)")
-//        print(bestTranscription)
-//        print("---")
-//        if isFinal {
-//            return
-//        }
-//        print("-----")
-//        print(bestTranscription)
         if (bestTranscription.segments.first { $0.confidence > 0 } == nil) {
             print("No")
             return
         }
+        print("Yes")
         var cur = self.transcriptions[self.transcriptions.count - 1]
         cur.bestTranscript = bestTranscription
         cur.segments = bestTranscription.segments
         
-        if let checkpointIdToAdd {
-            cur.checkpoints.append(
-                .init(partId: checkpointIdToAdd, startTime: Int(Date().timeIntervalSince1970 * 1_000))
-            )
-        }
-        
         // Clone to publicize change
-        var newSessions: [PresentationSessionTranscript] = []
+        var newSessions: [PresentationTranscriptRawPart] = []
         for session in self.transcriptions {
             newSessions.append(session)
         }

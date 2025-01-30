@@ -56,7 +56,8 @@ struct PresentationOverviewView: View {
     @ObservedObject var speechRecognizer: SpeechRecgonizer
 
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
-    
+    @Environment(\.dismiss) private var dismiss
+
     var body: some View {
         let buttonSize: AppButtonSize = horizontalSizeClass == .regular ? .large : .small
         let toolbarSize: PresentationToolbarSize = horizontalSizeClass == .regular ? .large : .small
@@ -102,7 +103,7 @@ struct PresentationOverviewView: View {
             .size(buttonSize)
             
             AppButton(action: {
-                speechRecognizer.initSessionTranscriptions(partId: firstPartId)
+                speechRecognizer.initSessionFrom(partId: firstPartId)
                 speechRecognizer.start()
                 goTo(viewType: .Present)
             }) {
@@ -121,6 +122,7 @@ struct PresentationOverviewView: View {
         if (viewModel.appearTransitionWorkItem != nil) {
             viewModel.appearTransitionWorkItem!.cancel()
         }
+        dismiss()
     }
     
     func animateIn() {
