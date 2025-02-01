@@ -5,38 +5,22 @@ import Combine
 public struct PresentationTranscriptPart {
     let title: String
     let img: String
-    let duration: Double
+    let duration: Int
     let content: String
 }
-
-//@Observable
-//public final class PresentationResultsViewModel {
-//    
-//}
 
 struct PresentationPacingData: Identifiable {
     let id = UUID()
     let timestamp: Float
-    let words: Int
-    
-    static func mockData() -> [PresentationPacingData] {
-        var records: [PresentationPacingData] = []
-        
-        for i in 1...20 {
-            records.append(
-                PresentationPacingData(timestamp: Float(i) * 0.5, words: Int.random(in: 80...130))
-            )
-        }
-        
-        return records
-    }
+    let words: Float
 }
 
 @Observable
 final class ResultsViewModel {
     var pacingData: [PresentationPacingData] = []
     var transcriptParts: [PresentationTranscriptPart] = []
-
+    var duration: Int = 0
+    
     var appearTransitionWorkItem: DispatchWorkItem? = nil
     var appearTransitionState: Double = 0
     
@@ -104,7 +88,7 @@ public struct ResultsContentView: View {
                             )
                             .foregroundStyle(AppColors.Gray300.color)
                             .font(.system(size: headerFontSize.rawValue, weight: .medium))
-                        Text("3m")
+                        Text(formatTime(viewModel.duration))
                             .frame(
                                 alignment: .leading
                             )
@@ -183,6 +167,14 @@ public struct ResultsContentView: View {
                                 .font(.system(size: headerFontSize.rawValue, weight: .medium))
                                 .padding(.horizontal, containerPadding)
                             
+                            let timestamps = pacingData.map { $0.timestamp }
+                            let words = pacingData.map { $0.words }
+                            
+                            let minTimestamp = pacingData.count > 0 ? timestamps.min()! : 0
+                            let maxTimestamp = pacingData.count > 0 ? timestamps.max()! : 0
+                            let minWords = pacingData.count > 0 ? words.min()! : 0
+                            let maxWords = pacingData.count > 0 ? words.max()! : 0
+                            
                             Chart(pacingData) {
                                 LineMark(
                                     x: .value("Timestamp", $0.timestamp),
@@ -222,8 +214,8 @@ public struct ResultsContentView: View {
                                     }
                                 }
                             }
-                            .chartXScale(domain: 0 ... 10)
-                            .chartYScale(domain: 0 ... 130)
+                            .chartXScale(domain: minTimestamp ... maxTimestamp)
+                            .chartYScale(domain: minWords ... maxWords * 1.25)
                             .frame(height: 240)
                         }
                         .frame(
@@ -296,21 +288,23 @@ public struct ResultsContentView: View {
                 LazyVStack(spacing: gridSpacing) {
                     ForEach(Array(parts.enumerated()), id: \.offset) { index, part in
                         if size == .large {
-                            HStack(spacing: 48) {
-                                VStack(spacing: 8) {
+                            HStack(alignment: .center, spacing: 48) {
+                                VStack(alignment: .leading, spacing: 8) {
                                     VStack {
                                         Image(part.img)
                                             .resizable()
                                             .scaledToFit()
                                     }
-                                    .frame(width: 160)
-                                    Text("3 min")
+                                    .frame(
+                                        width: 160
+                                    )
+                                    Text(formatTime(part.duration))
                                         .frame(
+                                            width: 160,
                                             alignment: .center
                                         )
                                         .foregroundStyle(AppColors.Gray300.color)
                                         .font(.system(size: headerFontSize.rawValue, weight: .medium))
-                                    Spacer()
                                 }
                                 VStack(alignment: .leading, spacing: 8) {
                                     Text(part.title)
@@ -341,7 +335,7 @@ public struct ResultsContentView: View {
                                     .stroke(AppColors.Gray700.color, lineWidth: 1)
                             )
                         } else {
-                            VStack(alignment: .leading, spacing: 8) {
+                            VStack(spacing: 8) {
                                 HStack(spacing: 8) {
                                     VStack {
                                         Image(part.img)
@@ -350,7 +344,7 @@ public struct ResultsContentView: View {
                                     }
                                     .frame(width: 96)
                                     Spacer()
-                                    Text("3 min")
+                                    Text(formatTime(part.duration))
                                         .frame(
                                             alignment: .center
                                         )
@@ -384,7 +378,6 @@ public struct ResultsContentView: View {
                                     .stroke(AppColors.Gray700.color, lineWidth: 1)
                             )
                         }
-                        
                     }
                 }
                 .opacity(viewModel.transcriptAppearTransitionState)
@@ -393,10 +386,8 @@ public struct ResultsContentView: View {
                         viewModel.transcriptAppearTransitionState = 1
                     }
                 }
-
             }
             .padding(.top, 16)
-
         }
         .frame(
             maxWidth: .infinity,
@@ -423,7 +414,6 @@ public struct ResultsView: View {
     let title: String;
     let presentationParts: [PresentationPart];
 
-    @State var pacingData = PresentationPacingData.mockData()
     @State var viewModel = ResultsViewModel()
     @ObservedObject var speechRecognizer: SpeechRecgonizer
 
@@ -475,114 +465,132 @@ public struct ResultsView: View {
         .navigationBarBackButtonHidden()
         .background(AppColors.Gray950.color)
         .onAppear() {
-            speechRecognizer.$transcriptions.sink { value in
-                var transcriptionParts: [PresentationTranscriptPart] = []
-                print("======> \(value.count) B")
+            self.onAppear()
+        }
+    }
+    
+    func onAppear() {
+        speechRecognizer.$transcriptions.sink { value in
+            var transcriptionParts: [PresentationTranscriptPart] = []
+            
+            if value.count <= 0 {
+                self.viewModel.transcriptParts = []
+                self.viewModel.duration = 0
+                self.viewModel.pacingData = []
+                return
+            }
+            
+            var tallyDuration: Int = 0
+            for transcriptionRawPart in value {
+                let bestTranscript = transcriptionRawPart.bestTranscript
+                if bestTranscript.segments.count <= 0 {
+                    print("No segments found.")
+                    continue
+                }
+                let lastSegment = bestTranscript.segments[bestTranscript.segments.count - 1]
+                let duration = Int((lastSegment.timestamp + lastSegment.duration) * 1_000)
+                tallyDuration += duration
                 
-                for transcriptionRawPart in value {
-                    let bestTranscript = transcriptionRawPart.bestTranscript
-                    if bestTranscript.segments.count <= 0 {
-                        print("No segments found.")
-                        continue
-                    }
-                    let lastSegment = bestTranscript.segments[bestTranscript.segments.count - 1]
-                    let duration = lastSegment.timestamp + lastSegment.duration
-                    
-                    let presentationPart = presentationParts.first { v in
-                        return transcriptionRawPart.partId == v.id
-                    }
-                    
-                    transcriptionParts.append(
-                        .init(
-                            title: presentationPart?.title ?? "No Title",
-                            img: presentationPart?.img ?? "No Image",
-                            duration: duration,
-                            content: bestTranscript.formattedString)
-                    )
-                    print(duration)
+                let presentationPart = presentationParts.first { v in
+                    return transcriptionRawPart.partId == v.id
                 }
                 
-                self.viewModel.transcriptParts = transcriptionParts
-
+                transcriptionParts.append(
+                    .init(
+                        title: presentationPart?.title ?? "No Title",
+                        img: presentationPart?.img ?? "No Image",
+                        duration: duration,
+                        content: bestTranscript.formattedString
+                    )
+                )
+            }
+            
+            var pacingData: [PresentationPacingData] = []
+            if tallyDuration > 0 {
+                let bucketSize = max(tallyDuration / 1_000, 1_000)
+                var bucketIndex: Int = 0
+                var bucketFilledAcc = 0
                 
-//                for transcription in value {
-//                    let baseStartTime: Double = Double(transcription.checkpoints[0].startTime)
-//                    var checkpointCursor = 0
-//                    var contentAcc = ""
-//                    for segment in transcription.segments {
-//                        let checkpoint = checkpointCursor < checkpoints.count ? checkpoints[checkpointCursor] : nil
-//                        let checkpointCursorNext = checkpointCursor + 1
-//                        if let checkpoint, checkpointCursorNext < checkpoints.count {
-//                            let nextCheckpoint = checkpoints[checkpointCursorNext]
-//                            if ((baseStartTime + (segment.timestamp * 1_000)) >= Double(nextCheckpoint.startTime)) {
-////                                print("New checkpoint \(checkpointCursor) -> \(checkpointCursorNext)")
-//                                let checkpointPart = self.presentationParts.first { v in
-//                                    return checkpoint.partId == v.id
-//                                }
-//                                let partContent = contentAcc
-//                                contentAcc = ""
-//                                checkpointCursor = checkpointCursorNext
-//                                guard let checkpointPart else {
-//                                    print("Presentation part of id, \(checkpoint.partId) not found")
-//                                    continue
-//                                }
-//                                transcriptionParts.append(
-//                                    .init(
-//                                        title: checkpointPart.title,
-//                                        img: checkpointPart.img,
-//                                        duration: Double(nextCheckpoint.startTime - checkpoint.startTime),
-//                                        content: partContent
-//                                    )
-//                                )
-//                            }
-//                        }
-////                        print(segment.substring)
-//                        if contentAcc == "" {
-//                            contentAcc = segment.substring
-//                        } else {
-//                            contentAcc = contentAcc + " " + segment.substring
-//                        }
-//                        print("T = \(segment.timestamp), U = \(segment.duration)")
-//                    }
-//                    
-//                    let checkpoint = checkpointCursor < checkpoints.count ? checkpoints[checkpointCursor] : nil
-//                    if let checkpoint {
-//                        let checkpointPart = self.presentationParts.first { v in
-//                            return checkpoint.partId == v.id
-//                        }
-//                        guard let checkpointPart else {
-//                            print("Presentation part of id, \(checkpoint.partId) not found")
-//                            continue
-//                        }
-//                        transcriptionParts.append(
-//                            .init(
-//                                title: checkpointPart.title,
-//                                img: checkpointPart.img,
-//                                duration: 1000, // Double(nextCheckpoint.startTime - checkpoint.startTime),
-//                                content: contentAcc
-//                            )
-//                        )
-//                    } else {
-//                        print("No checkpoint?")
-//                    }
-//                    
-//                    print("Checkpoints:")
-//                    print(checkpoints)
-//                    checkpointCursor = 0
-//                    //                    let baseStartTime = Double(transcription.checkpoints[0].startTime)
-//                    for checkpoint in checkpoints {
-//                        let t = Double(checkpoint.startTime) - baseStartTime
-//                        print("\(t / 1000)s in")
-//                    }
-//                }
-            }.store(in: &self.cancellableBag)
-//            viewModel.transcriptParts = [
-//                .init(title: "Hello World", img: "playground", duration: 60_000_000, content: "LLorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.orem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."),
-//                .init(title: "Hello 2", img: "playground", duration: 3_000_000, content: "LLorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod")
-//            ]
-            viewModel.pacingData = PresentationPacingData.mockData()
-            animateIn()
-        }
+                var transcriptionRawPartIndex = 0
+                var transcriptionRawPartSegmentIndex = 0
+                var baseTimestamp: Int = 0
+                
+                var words: Float = 0
+                
+                while true {
+                    if value.count <= 0 || transcriptionRawPartIndex >= value.count {
+                        break
+                    }
+                    
+                    let durationAcc = bucketIndex * bucketSize + bucketFilledAcc
+                    
+                    // If the bucket is filled, we will save the current bucket and prepare for the next bucket.
+                    if bucketFilledAcc >= bucketSize {
+                        print("Words: \(words)")
+                        pacingData.append(
+                            .init(
+                                timestamp: Float(durationAcc) / 1_000,
+                                words: (60 * words)
+                            )
+                        )
+                        bucketIndex += 1
+                        bucketFilledAcc = 0
+                        words = 0
+                    }
+                    
+                    let transcriptionRawPart = value[transcriptionRawPartIndex]
+                    let transcriptionRawPartSegments = transcriptionRawPart.segments
+                    // Move to next segment if the index cursor overflows.
+                    if transcriptionRawPartSegments.count <= 0 || transcriptionRawPartSegmentIndex >= transcriptionRawPartSegments.count {
+                        transcriptionRawPartIndex += 1
+                        transcriptionRawPartSegmentIndex = 0
+                        if transcriptionRawPart.segments.count > 0 {
+                            let lastSegment = transcriptionRawPart.segments[transcriptionRawPartSegments.count - 1]
+                            baseTimestamp += Int((lastSegment.timestamp + lastSegment.duration) * 1_000)
+                        }
+                        continue
+                    }
+                    
+                    let segment = transcriptionRawPartSegments[transcriptionRawPartSegmentIndex]
+                    
+                    // First we check if the segment starting time matches up with the duration acc.
+                    // This is to factor in gaps between segments.
+                    let startingTime = (baseTimestamp + Int(segment.timestamp) * 1000)
+                    if durationAcc < startingTime {
+                        // E.g. Starting time = 1000, durationAcc = 700
+                        // Case 1: Bucket size = 200, BucketFilledAcc = 100, gapDurationUsed = 100
+                        // Case 2: Bucket size = 200, BucketFilledAcc = 0, gapDurationUsed = 200
+                        // Case 3: Bucket size = 400, BucketFilledAcc = 0, gapDurationUsed = 300
+                        let gapDurationUsed = min(startingTime - durationAcc, bucketSize, bucketSize - bucketFilledAcc)
+                        bucketFilledAcc += gapDurationUsed
+                        print("Gap \(gapDurationUsed)")
+                        continue
+                    }
+                    let endingTime = startingTime + Int(segment.duration * 1000)
+                    if durationAcc >= endingTime {
+                        transcriptionRawPartSegmentIndex += 1
+                        continue
+                    }
+                    
+                    let segmentInDuration = durationAcc - startingTime
+                    // E>g. Duration 1000,
+                    // Case 1: Bucket size = 1100, Segment in duration = 0, segmentDurationUsed = 1000
+                    // Case 2: Bucket size = 300, Segment in duration = 200, segmentDurationUsed = 300
+                    // Case 3: Bucket size = 500, Segment in duration = 600, segmentDurationUsed = 400
+                    let segmentDurationUsed = min(Int(segment.duration * 1000) - segmentInDuration, bucketSize, bucketSize - bucketFilledAcc)
+                    bucketFilledAcc += segmentDurationUsed
+                    print("Segment \(segmentDurationUsed) P1 = \(Int(segment.duration * 1000) - segmentInDuration) P2 = \(bucketSize) P3 = \(bucketSize - bucketFilledAcc)")
+
+                    words += Float(segment.substring.count) * Float(segmentDurationUsed) / Float(bucketSize)
+                }
+            }
+            
+            self.viewModel.transcriptParts = transcriptionParts
+            self.viewModel.duration = tallyDuration
+            self.viewModel.pacingData = pacingData
+        }.store(in: &self.cancellableBag)
+        viewModel.pacingData = [] // PresentationPacingData.mockData()
+        animateIn()
         
     }
     

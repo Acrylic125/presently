@@ -44,6 +44,7 @@ final public class SpeechRecgonizer: ObservableObject {
     @Published var state: SpeechRecognizerState = .inactive
     @Published var error: Error?
 
+    private var transcriptionHook: (() -> Void)?
     private var startStopTask: Task<(), Error>?
     
     init() {
@@ -77,21 +78,13 @@ final public class SpeechRecgonizer: ObservableObject {
         self.transcriptions = []
     }
     
-    private var hook: (() -> Void)?
-    
     func startNext(partId: String) {
         Task {
-            hook = {
-                self.hook = nil
-                
-                self.start(partId: partId)
-                //                self.start(hook: {
-//                    Task {
-//                        await self.addPart()
-//                    }
-//                })
+            self.transcriptionHook = {
+                self.transcriptionHook = nil
+                self.start(partId: partId, softStart: true)
             }
-            await self.reset()
+            await self.reset(softReset: true)
         }
     }
     
@@ -108,14 +101,14 @@ final public class SpeechRecgonizer: ObservableObject {
         return transcriptionIndex
     }
     
-    func start(partId: String, shouldReset: Bool = true, hook: (() -> Void)? = nil) {
+    func start(partId: String, shouldReset: Bool = true, softStart: Bool = false) {
         if let task = self.startStopTask {
             task.cancel()
         }
         
         self.startStopTask = Task {
             if (shouldReset) {
-                await reset()
+                await reset(softReset: softStart)
             }
             
 //            try? await Task.sleep(nanoseconds: 3_000_000_000)
@@ -125,7 +118,9 @@ final public class SpeechRecgonizer: ObservableObject {
                 return
             }
             
-            await self.setState(state: .starting)
+            if !softStart {
+                await self.setState(state: .starting)
+            }
             let audioEngine = AVAudioEngine()
             let audioSession = AVAudioSession.sharedInstance()
             do {
@@ -175,8 +170,9 @@ final public class SpeechRecgonizer: ObservableObject {
             })
             
             print("Started")
-            hook?()
-            await self.setState(state: .active)
+            if !softStart {
+                await self.setState(state: .active)
+            }
             self.audioEngine = audioEngine
             self.audioSession = audioSession
             self.recognitionRequest = request
@@ -192,15 +188,19 @@ final public class SpeechRecgonizer: ObservableObject {
         }
     }
     
-    private func reset() async {
-        await self.setState(state: .stopping)
+    private func reset(softReset: Bool = false) async {
+        if !softReset {
+            await self.setState(state: .stopping)
+        }
         recognitionTask?.finish()
         audioEngine?.stop()
         
         audioEngine = nil
         recognitionRequest = nil
         recognitionTask = nil
-        await self.setState(state: .inactive)
+        if !softReset {
+            await self.setState(state: .inactive)
+        }
     }
     
     private func recognitionHandler(
@@ -225,7 +225,7 @@ final public class SpeechRecgonizer: ObservableObject {
                 result.isFinal
             )
         }
-        self.hook?()
+        self.transcriptionHook?()
     }
     
     private func transcribe(
@@ -239,10 +239,8 @@ final public class SpeechRecgonizer: ObservableObject {
             return
         }
         if (bestTranscription.segments.first { $0.confidence > 0 } == nil) {
-            print("No - \(message)")
             return
         }
-        print("Yes \(self.transcriptions.count) \(message)")
         if transcriptionIndex < self.transcriptions.count {
             var cur = self.transcriptions[transcriptionIndex]
             cur.bestTranscript = bestTranscription
