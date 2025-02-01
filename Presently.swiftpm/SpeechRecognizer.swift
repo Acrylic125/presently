@@ -73,22 +73,29 @@ final public class SpeechRecgonizer: ObservableObject {
         self.error = error
     }
     
-    @MainActor public func initSessionFrom(
-        partId: String
-    ) {
-        self.transcriptions = [
-            .init(
-                bestTranscript: .init(),
-                segments: [],
-                partId: partId,
-                startTime: Int(Date().timeIntervalSince1970)
-            )
-        ]
+    @MainActor public func resetSession() {
+        self.transcriptions = []
     }
-
-    @MainActor public func addNewTranscriptionFor(
-        partId: String
-    ) {
+    
+    private var hook: (() -> Void)?
+    
+    func startNext(partId: String) {
+        Task {
+            hook = {
+                self.hook = nil
+                
+                self.start(partId: partId)
+                //                self.start(hook: {
+//                    Task {
+//                        await self.addPart()
+//                    }
+//                })
+            }
+            await self.reset()
+        }
+    }
+    
+    @MainActor private func addNewPart(partId: String) -> Int {
         self.transcriptions.append(
             .init(
                 bestTranscript: .init(),
@@ -97,9 +104,11 @@ final public class SpeechRecgonizer: ObservableObject {
                 startTime: Int(Date().timeIntervalSince1970)
             )
         )
+        let transcriptionIndex = self.transcriptions.count - 1
+        return transcriptionIndex
     }
-
-    func start(shouldReset: Bool = true) {
+    
+    func start(partId: String, shouldReset: Bool = true, hook: (() -> Void)? = nil) {
         if let task = self.startStopTask {
             task.cancel()
         }
@@ -109,8 +118,10 @@ final public class SpeechRecgonizer: ObservableObject {
                 await reset()
             }
             
+//            try? await Task.sleep(nanoseconds: 3_000_000_000)
             if let audioEngine = self.audioEngine, audioEngine.isRunning {
                 print("Audio engine is already running. Please stop.")
+                await self.setError(error: RecognizerError.recognizerStartFailed)
                 return
             }
             
@@ -137,6 +148,8 @@ final public class SpeechRecgonizer: ObservableObject {
             
             let inputNode = audioEngine.inputNode
             let recordingFormat = inputNode.outputFormat(forBus: 0)
+            inputNode.reset()
+            inputNode.removeTap(onBus: 0)
             inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { (buffer: AVAudioPCMBuffer, when: AVAudioTime) in
                 request.append(buffer)
             }
@@ -150,11 +163,19 @@ final public class SpeechRecgonizer: ObservableObject {
                 return
             }
             
+            let transcriptionIndex = await addNewPart(partId: partId)
+
             self.recognitionTask = speechRecognizer.recognitionTask(with: request, resultHandler: { [weak self] result, error in
-                self?.recognitionHandler(audioEngine: audioEngine, result: result, error: error)
+                self?.recognitionHandler(
+                    transcriptionIndex: transcriptionIndex,
+                    audioEngine: audioEngine,
+                    result: result,
+                    error: error
+                )
             })
             
             print("Started")
+            hook?()
             await self.setState(state: .active)
             self.audioEngine = audioEngine
             self.audioSession = audioSession
@@ -173,7 +194,7 @@ final public class SpeechRecgonizer: ObservableObject {
     
     private func reset() async {
         await self.setState(state: .stopping)
-        recognitionTask?.cancel()
+        recognitionTask?.finish()
         audioEngine?.stop()
         
         audioEngine = nil
@@ -182,7 +203,12 @@ final public class SpeechRecgonizer: ObservableObject {
         await self.setState(state: .inactive)
     }
     
-    private func recognitionHandler(audioEngine: AVAudioEngine, result: SFSpeechRecognitionResult?, error: Error?) {
+    private func recognitionHandler(
+        transcriptionIndex: Int,
+        audioEngine: AVAudioEngine,
+        result: SFSpeechRecognitionResult?,
+        error: Error?
+    ) {
         let receivedFinalResult = result?.isFinal ?? false
         let receivedError = error != nil
         
@@ -192,31 +218,46 @@ final public class SpeechRecgonizer: ObservableObject {
         }
         
         if let result {
-            transcribe(result.bestTranscription.formattedString, result.bestTranscription, result.isFinal)
+            transcribe(
+                transcriptionIndex,
+                result.bestTranscription.formattedString,
+                result.bestTranscription,
+                result.isFinal
+            )
         }
+        self.hook?()
     }
     
-    private func transcribe(_ message: String, _ bestTranscription: SFTranscription, _ isFinal: Bool) {
+    private func transcribe(
+        _ transcriptionIndex: Int,
+        _ message: String,
+        _ bestTranscription: SFTranscription,
+        _ isFinal: Bool
+    ) {
         if self.transcriptions.count <= 0 {
             print("No existing transcriptions found despite speech recognizer running")
             return
         }
         if (bestTranscription.segments.first { $0.confidence > 0 } == nil) {
-            print("No")
+            print("No - \(message)")
             return
         }
-        print("Yes")
-        var cur = self.transcriptions[self.transcriptions.count - 1]
-        cur.bestTranscript = bestTranscription
-        cur.segments = bestTranscription.segments
-        
-        // Clone to publicize change
-        var newSessions: [PresentationTranscriptRawPart] = []
-        for session in self.transcriptions {
-            newSessions.append(session)
+        print("Yes \(self.transcriptions.count) \(message)")
+        if transcriptionIndex < self.transcriptions.count {
+            var cur = self.transcriptions[transcriptionIndex]
+            cur.bestTranscript = bestTranscription
+            cur.segments = bestTranscription.segments
+            
+            // Clone to publicize change
+            var newTranscriptions: [PresentationTranscriptRawPart] = []
+            for session in self.transcriptions {
+                newTranscriptions.append(session)
+            }
+            newTranscriptions[transcriptionIndex] = cur
+            self.transcriptions = newTranscriptions
+        } else {
+            print("Wtf? \(transcriptionIndex)")
         }
-        newSessions[newSessions.count - 1] = cur
-        self.transcriptions = newSessions
     }
 
     private func transcribe(_ error: Error) {

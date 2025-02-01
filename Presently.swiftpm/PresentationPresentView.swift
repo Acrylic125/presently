@@ -448,8 +448,7 @@ struct PresentationPresentView: View {
                     return
                 }
                 let newPresentationPart = presentationParts[newIndex]
-                speechRecognizer.addNewTranscriptionFor(partId: newPresentationPart.id)
-                speechRecognizer.start(shouldReset: true)
+                speechRecognizer.startNext(partId: newPresentationPart.id)
                 viewModel.goToPage(newPage: newIndex)
             }) {
                 HStack {
@@ -475,8 +474,7 @@ struct PresentationPresentView: View {
                     return
                 }
                 let newPresentationPart = presentationParts[newIndex]
-                speechRecognizer.addNewTranscriptionFor(partId: newPresentationPart.id)
-                speechRecognizer.start(shouldReset: true)
+                speechRecognizer.startNext(partId: newPresentationPart.id)
                 viewModel.goToPage(newPage: newIndex)
             }) {
                 HStack {
@@ -494,6 +492,7 @@ struct PresentationPresentView: View {
             
             if (page >= lastPage) {
                 AppButton(action: {
+                    print("======> \(speechRecognizer.transcriptions.count) A1")
                     goTo(viewType: .Results)
                 }) {
                     Text("Done")
@@ -504,6 +503,7 @@ struct PresentationPresentView: View {
                 )
             } else {
                 AppButton(action: {
+                    print("======> \(speechRecognizer.transcriptions.count) A2")
                     goTo(viewType: .Results)
                 }) {
                     Text("Done")

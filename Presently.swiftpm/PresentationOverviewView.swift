@@ -103,8 +103,8 @@ struct PresentationOverviewView: View {
             .size(buttonSize)
             
             AppButton(action: {
-                speechRecognizer.initSessionFrom(partId: firstPartId)
-                speechRecognizer.start()
+                speechRecognizer.resetSession()
+                speechRecognizer.start(partId: firstPartId)
                 goTo(viewType: .Present)
             }) {
                 Text("Start")

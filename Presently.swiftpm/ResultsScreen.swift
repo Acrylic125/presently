@@ -303,7 +303,7 @@ public struct ResultsContentView: View {
                                             .resizable()
                                             .scaledToFit()
                                     }
-                                    .frame(width: 240)
+                                    .frame(width: 160)
                                     Text("3 min")
                                         .frame(
                                             alignment: .center
@@ -477,7 +477,8 @@ public struct ResultsView: View {
         .onAppear() {
             speechRecognizer.$transcriptions.sink { value in
                 var transcriptionParts: [PresentationTranscriptPart] = []
-               
+                print("======> \(value.count) B")
+                
                 for transcriptionRawPart in value {
                     let bestTranscript = transcriptionRawPart.bestTranscript
                     if bestTranscript.segments.count <= 0 {
