@@ -168,54 +168,70 @@ public struct ResultsContentView: View {
                                 .font(.system(size: headerFontSize.rawValue, weight: .medium))
                                 .padding(.horizontal, containerPadding)
                             
-                            let timestamps = pacingData.map { $0.timestamp }
-                            let words = pacingData.map { $0.words }
-                            
-                            let minTimestamp = timestamps.min() ?? 0
-                            let maxWords = max(words.max() ?? 150, 150)
-                            
-                            Chart(pacingData) {
-                                LineMark(
-                                    x: .value("Timestamp", $0.timestamp),
-                                    y: .value("Words", $0.words)
-                                )
-                                .interpolationMethod(.catmullRom)
-                                .foregroundStyle(AppColors.Primary500.color)
+                            if pacingData.count > 1 {
+                                let timestamps = pacingData.map { $0.timestamp }
+                                let words = pacingData.map { $0.words }
                                 
-                                AreaMark(
-                                    x: .value("Timestamp", $0.timestamp),
-                                    y: .value("Words", $0.words)
-                                )
-                                .interpolationMethod(.catmullRom)
-                                .foregroundStyle(areaBackground)
+                                let minTimestamp = timestamps.min() ?? 0
+                                let maxWords = max(words.max() ?? 150, 150)
                                 
-                                RuleMark(y: .value("Average", 50))
+                                Chart(pacingData) {
+                                    LineMark(
+                                        x: .value("Timestamp", $0.timestamp),
+                                        y: .value("Words", $0.words)
+                                    )
+                                    .interpolationMethod(.catmullRom)
                                     .foregroundStyle(AppColors.Primary500.color)
-                                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [5]))
-                            }
-                            .chartYAxis {
-                                AxisMarks() { value in
-                                    AxisValueLabel() {
-                                        if let timestamp = value.as(Float.self) {
-                                            Text(String(format: "%.1f", timestamp))
-                                                .foregroundStyle(AppColors.Gray300.color)
+                                    
+                                    AreaMark(
+                                        x: .value("Timestamp", $0.timestamp),
+                                        y: .value("Words", $0.words)
+                                    )
+                                    .interpolationMethod(.catmullRom)
+                                    .foregroundStyle(areaBackground)
+                                    
+                                    RuleMark(y: .value("Average", 50))
+                                        .foregroundStyle(AppColors.Primary500.color)
+                                        .lineStyle(StrokeStyle(lineWidth: 1, dash: [5]))
+                                }
+                                .chartYAxis {
+                                    AxisMarks() { value in
+                                        AxisValueLabel() {
+                                            if let timestamp = value.as(Float.self) {
+                                                Text(String(format: "%.1f", timestamp))
+                                                    .foregroundStyle(AppColors.Gray300.color)
+                                            }
                                         }
                                     }
                                 }
-                            }
-                            .chartXAxis {
-                                AxisMarks(values: intervalPoints) { value in
-                                    AxisValueLabel(centered: true) {
-                                        if let timestamp = value.as(Float.self) {
-                                            Text(String(format: "%.1f", timestamp))
-                                                .foregroundStyle(AppColors.Gray300.color)
+                                .chartXAxis {
+                                    AxisMarks(values: intervalPoints) { value in
+                                        AxisValueLabel(centered: true) {
+                                            if let timestamp = value.as(Float.self) {
+                                                Text(String(format: "%.1f", timestamp))
+                                                    .foregroundStyle(AppColors.Gray300.color)
+                                            }
                                         }
                                     }
                                 }
+                                .chartXScale(domain: minTimestamp ... maxTimestamp)
+                                .chartYScale(domain: 0 ... maxWords * 1.25)
+                                .frame(height: 240)
+                            } else {
+                                VStack {
+                                    Text("Insufficient Data")
+                                        .frame(
+                                            maxWidth: 300,
+                                            alignment: .center
+                                        )
+                                        .foregroundStyle(AppColors.Gray50.color)
+                                        .font(.system(size: headerFontSize.rawValue, weight: .medium))
+                                        .padding(.horizontal, containerPadding)
+                                }
+                                .frame(
+                                    height: 240
+                                )
                             }
-                            .chartXScale(domain: minTimestamp ... maxTimestamp)
-                            .chartYScale(domain: 0 ... maxWords * 1.25)
-                            .frame(height: 240)
                         }
                         .frame(
                             maxWidth: .infinity,
@@ -354,6 +370,7 @@ public struct ResultsContentView: View {
                                 }
                                 Text(part.title)
                                     .frame(
+                                        maxWidth: .infinity,
                                         alignment: .leading
                                     )
                                     .foregroundStyle(AppColors.Primary500.color)
@@ -361,7 +378,7 @@ public struct ResultsContentView: View {
                                 Text(part.content)
                                     .lineSpacing(4)
                                     .frame(
-                                        maxWidth: 800,
+                                        maxWidth: .infinity,
                                         alignment: .leading
                                     )
                                     .foregroundStyle(AppColors.Gray50.color)

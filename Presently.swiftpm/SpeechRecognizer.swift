@@ -114,7 +114,7 @@ final public class SpeechRecgonizer: ObservableObject {
                 await reset(softReset: softStart)
             }
             
-//            try? await Task.sleep(nanoseconds: 3_000_000_000)
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
             if let audioEngine = self.audioEngine, audioEngine.isRunning {
                 print("Audio engine is already running. Please stop.")
                 await self.setError(error: RecognizerError.recognizerStartFailed)
@@ -150,46 +150,9 @@ final public class SpeechRecgonizer: ObservableObject {
             inputNode.removeTap(onBus: 0)
             inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { (buffer: AVAudioPCMBuffer, when: AVAudioTime) in
                 request.append(buffer)
-                
                 Task {
                     await self.processSampleBuffer(buffer)
                 }
-                
-//                Task {
-//                    guard let floatChannelData = buffer.floatChannelData else {
-//                        return
-//                    }
-//                    let channelCount = Int(buffer.format.channelCount)
-//                    let frameLength = Int(buffer.frameLength)
-//                    var amplitudes: [CGFloat] = []
-//                    let frameSize: Int = frameLength / self.numberOfAudioAmplitudes
-//                    
-//                    for frame in 0..<self.numberOfAudioAmplitudes {
-//                        var amplitude: CGFloat = 0
-//                        let frameIndex: Int = frame * frameSize
-//                        
-//                        if frameIndex < frameLength {
-//                            for channel in 0..<channelCount {
-//                                let c = floatChannelData[channel]
-//                                amplitude += CGFloat(abs(c[frameIndex]))
-//                            }
-//                        }
-//                        if channelCount > 0 {
-//                            amplitude /= CGFloat(channelCount) // Average across channels
-//                        }
-//                        amplitudes.append(amplitude)
-//                    }
-//                    
-//                    let highestAmplitude = amplitudes.max() ?? 0
-//                    if highestAmplitude > 0 {
-//                        amplitudes = amplitudes.map { v in
-//                            return v / highestAmplitude
-//                        }
-//                    }
-//                    
-////                    print("Amplitudes: \(amplitudes) | Channel Count: \(channelCount)")
-//                    await self.setAudioAmplitudes(value: amplitudes)
-//                }
             }
             audioEngine.prepare()
             do {

@@ -12,7 +12,6 @@ struct PresentationSelectionView: View {
     
     var body: some View {
         let containerPadding: CGFloat = size == .large ? 24 : 12
-        let containerSpacing: CGFloat = size == .large ? 12 : 8
         let containerBorderRadius: CGFloat = size == .large ? 16 : 8
         let containerTextSize: AppFontSize = size == .large ? .xl2 : .lg
         
@@ -50,7 +49,7 @@ struct PresentationSelectionView: View {
                                                 .scaledToFit()
                                         }
                                         .aspectRatio(4/3, contentMode: .fit)
-                                        VStack {
+                                        VStack(alignment: .leading) {
                                             Text(presentation.title)
                                                 .frame(
                                                     maxWidth: 440,
@@ -96,19 +95,25 @@ struct PresentationSelectionView: View {
                                     .scaledToFit()
                             }
                             .aspectRatio(1/1, contentMode: .fit)
-                            VStack(alignment: .leading) {
+                            HStack {
                                 Text(presentation.title)
                                     .frame(
                                         maxWidth: 440,
                                         alignment: .leading
                                     )
+                                    .multilineTextAlignment(.leading)
                                     .foregroundStyle(AppColors.Gray50.color)
                                     .font(.system(size: containerTextSize.rawValue, weight: .black))
+                                Spacer()
                             }
+                            .frame(
+                                maxWidth: .infinity
+                            )
                             .padding(.trailing, containerPadding)
                         }
                         .frame(
-                            maxWidth: .infinity
+                            maxWidth: .infinity,
+                            alignment: .leading
                         )
                         .background(
                             RoundedRectangle(cornerRadius: containerBorderRadius)
