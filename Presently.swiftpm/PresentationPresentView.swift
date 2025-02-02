@@ -55,7 +55,8 @@ final class PresentationPresentViewModel {
 
 struct PresentationPresentVX: View {
     var appearVXTransitionState: Double
-    
+    @ObservedObject var speechRecognizer: SpeechRecgonizer
+
     var body: some View {
         VStack {
             Rectangle()
@@ -76,7 +77,6 @@ struct PresentationPresentVX: View {
                     maxHeight: .infinity
                 )
             
-            // To add audio effect
             VStack {
                 
             }
@@ -85,23 +85,45 @@ struct PresentationPresentVX: View {
                 maxHeight: .infinity
             )
 
-            Rectangle()
-                .fill(
-                    LinearGradient(
-                        gradient: Gradient(
-                            stops: [
-                                .init(color: AppColors.Primary300.color.opacity(0.0), location: 0),
-                                .init(color: AppColors.Primary500.color.opacity(0.25), location: 1)
-                            ]
-                        ),
-                        startPoint: .top,
-                        endPoint: .bottom
+            ZStack {
+                Rectangle()
+                    .fill(
+                        LinearGradient(
+                            gradient: Gradient(
+                                stops: [
+                                    .init(color: AppColors.Primary300.color.opacity(0.0), location: 0),
+                                    .init(color: AppColors.Primary500.color.opacity(0.25), location: 1)
+                                ]
+                            ),
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
                     )
-                )
+                    .frame(
+                        maxWidth: .infinity,
+                        maxHeight: .infinity
+                    )
+                VStack(alignment: .trailing) {
+                    AudioWaveformView(
+                        amplitudes: speechRecognizer.audioAmplitudes
+                    )
+                        .frame(
+                            maxWidth: .infinity,
+                            maxHeight: .infinity,
+                            alignment: .bottom
+                        )
+                }
                 .frame(
                     maxWidth: .infinity,
-                    maxHeight: .infinity
+                    maxHeight: .infinity,
+                    alignment: .bottom
                 )
+            }
+            .frame(
+                maxWidth: .infinity,
+                maxHeight: .infinity,
+                alignment: .bottom
+            )
         }
         .frame(
             maxHeight: .infinity,
@@ -401,7 +423,10 @@ struct PresentationPresentView: View {
         let toolbarSize: PresentationToolbarSize = horizontalSizeClass == .regular ? .large : .small
         
         if speechRecognizer.state == .active || speechRecognizer.state == .stopping {
-            PresentationPresentVX(appearVXTransitionState: viewModel.vxTransitionState)
+            PresentationPresentVX(
+                appearVXTransitionState: viewModel.vxTransitionState,
+                speechRecognizer: speechRecognizer
+            )
                 .onAppear() {
                     self.viewModel.vxTransitionState = 0
                     withAnimation(.easeIn(duration: 0.75)) {

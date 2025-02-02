@@ -3,6 +3,7 @@ import AVFoundation
 import Speech
 import SwiftUI
 import Combine
+import Accelerate
 
 enum SpeechRecognizerState {
     case starting, active, stopping, inactive
@@ -39,10 +40,12 @@ final public class SpeechRecgonizer: ObservableObject {
     private var speechRecognizer: SFSpeechRecognizer?
     private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
     private var recognitionTask: SFSpeechRecognitionTask?
+    private var numberOfAudioAmplitudes = 30
     
     @Published var transcriptions: [PresentationTranscriptRawPart] = []
     @Published var state: SpeechRecognizerState = .inactive
     @Published var error: Error?
+    @Published var audioAmplitudes: [CGFloat] = []
 
     private var transcriptionHook: (() -> Void)?
     private var startStopTask: Task<(), Error>?
@@ -147,6 +150,46 @@ final public class SpeechRecgonizer: ObservableObject {
             inputNode.removeTap(onBus: 0)
             inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { (buffer: AVAudioPCMBuffer, when: AVAudioTime) in
                 request.append(buffer)
+                
+                Task {
+                    await self.processSampleBuffer(buffer)
+                }
+                
+//                Task {
+//                    guard let floatChannelData = buffer.floatChannelData else {
+//                        return
+//                    }
+//                    let channelCount = Int(buffer.format.channelCount)
+//                    let frameLength = Int(buffer.frameLength)
+//                    var amplitudes: [CGFloat] = []
+//                    let frameSize: Int = frameLength / self.numberOfAudioAmplitudes
+//                    
+//                    for frame in 0..<self.numberOfAudioAmplitudes {
+//                        var amplitude: CGFloat = 0
+//                        let frameIndex: Int = frame * frameSize
+//                        
+//                        if frameIndex < frameLength {
+//                            for channel in 0..<channelCount {
+//                                let c = floatChannelData[channel]
+//                                amplitude += CGFloat(abs(c[frameIndex]))
+//                            }
+//                        }
+//                        if channelCount > 0 {
+//                            amplitude /= CGFloat(channelCount) // Average across channels
+//                        }
+//                        amplitudes.append(amplitude)
+//                    }
+//                    
+//                    let highestAmplitude = amplitudes.max() ?? 0
+//                    if highestAmplitude > 0 {
+//                        amplitudes = amplitudes.map { v in
+//                            return v / highestAmplitude
+//                        }
+//                    }
+//                    
+////                    print("Amplitudes: \(amplitudes) | Channel Count: \(channelCount)")
+//                    await self.setAudioAmplitudes(value: amplitudes)
+//                }
             }
             audioEngine.prepare()
             do {
@@ -178,6 +221,66 @@ final public class SpeechRecgonizer: ObservableObject {
             self.recognitionRequest = request
         }
     }
+   
+    private var processSampleCooldown: Double = 0
+    
+    private func processSampleBuffer(_ buffer: AVAudioPCMBuffer) async {
+        let now = Date().timeIntervalSince1970
+        if now < processSampleCooldown {
+            print("\(processSampleCooldown - now)")
+            return
+        }
+        self.processSampleCooldown = now + 0.2
+        
+        guard let channelData = buffer.floatChannelData?[0] else { return }
+        let frames = Int(buffer.frameLength)
+        
+        var amplitudes: [CGFloat] = []
+        var amplitudesSamples: [Int] = []
+
+        // Calculate RMS (Root Mean Square) to get amplitude
+        let windowSize = frames / self.numberOfAudioAmplitudes
+        for frame in 0..<frames {
+            let amplitudeIndex = frame / windowSize
+            while amplitudeIndex >= amplitudes.count {
+                amplitudes.append(0)
+                amplitudesSamples.append(0)
+            }
+            
+            let sample = channelData[frame]
+            amplitudes[amplitudeIndex] += CGFloat(sample * sample)
+            amplitudesSamples[amplitudeIndex] += 1
+        }
+        
+        var newAmplitudes: [CGFloat] = []
+        let mid = CGFloat(self.numberOfAudioAmplitudes / 2)
+        for i in 0..<amplitudes.count {
+            let amplitude = amplitudes[i]
+            let samples = amplitudesSamples[i]
+            
+            let rms = sqrt(amplitude / CGFloat(samples))
+            // Convert to decibels
+            let db = 20 * log10(rms)
+            // Normalize to 0-1 range (assuming typical dB range of -160 to 0)
+            let normalizedValue = CGFloat(max(0, min(1, (db + 160) / 160)))
+
+            let q = min(max((pow(100, normalizedValue) / 100) - 0.2, 0) * 2, 1)
+            let p = 0.5 + 0.5 * (1 - pow(abs(CGFloat(i) - mid) / mid, 2))
+            let v = p * q
+            newAmplitudes.append(
+                v
+            )
+        }
+
+        await self.setAudioAmplitudes(value: newAmplitudes)
+    }
+    
+    func normalDistribution(x: Double, mean: Double = 0, standardDeviation: Double = 1) -> Double {
+        let variance = standardDeviation * standardDeviation
+        let numerator = exp(-pow(x - mean, 2) / (2 * variance))
+        let denominator = standardDeviation * sqrt(2 * .pi)
+        return numerator / denominator
+    }
     
     func stop() {
         if let task = self.startStopTask {
@@ -186,6 +289,10 @@ final public class SpeechRecgonizer: ObservableObject {
         self.startStopTask = Task {
             await reset()
         }
+    }
+    
+    @MainActor private func setAudioAmplitudes(value: [CGFloat]) {
+        self.audioAmplitudes = value
     }
     
     private func reset(softReset: Bool = false) async {

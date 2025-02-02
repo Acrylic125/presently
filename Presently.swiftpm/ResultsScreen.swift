@@ -20,7 +20,8 @@ final class ResultsViewModel {
     var pacingData: [PresentationPacingData] = []
     var transcriptParts: [PresentationTranscriptPart] = []
     var duration: Int = 0
-    
+    var wpm: Int = 0
+
     var appearTransitionWorkItem: DispatchWorkItem? = nil
     var appearTransitionState: Double = 0
     
@@ -47,7 +48,7 @@ public struct ResultsContentView: View {
         let parts = viewModel.transcriptParts
         
         let maxTimestamp = pacingData.map { $0.timestamp }.max() ?? 0
-        let intervalPoints = Array(stride(from: 0, through: maxTimestamp, by: maxTimestamp / 4))
+        let intervalPoints = maxTimestamp > 0 ? Array(stride(from: 0, through: maxTimestamp, by: maxTimestamp / 4)) : [0]
         
         let gridSpacing: CGFloat = size == .large ? 20 : 12
         let containerPadding: CGFloat = size == .large ? 24 : 12
@@ -127,7 +128,7 @@ public struct ResultsContentView: View {
                             )
                             .foregroundStyle(AppColors.Gray300.color)
                             .font(.system(size: headerFontSize.rawValue, weight: .medium))
-                        Text("120 wpm")
+                        Text("\(viewModel.wpm) wpm")
                             .frame(
                                 alignment: .leading
                             )
@@ -170,9 +171,8 @@ public struct ResultsContentView: View {
                             let timestamps = pacingData.map { $0.timestamp }
                             let words = pacingData.map { $0.words }
                             
-                            let minTimestamp = pacingData.count > 0 ? timestamps.min()! : 0
-                            let maxTimestamp = pacingData.count > 0 ? timestamps.max()! : 0
-                            let maxWords = pacingData.count > 0 ? words.max()! : 0
+                            let minTimestamp = timestamps.min() ?? 0
+                            let maxWords = max(words.max() ?? 150, 150)
                             
                             Chart(pacingData) {
                                 LineMark(
@@ -280,9 +280,11 @@ public struct ResultsContentView: View {
             }
             
             VStack(alignment: .leading, spacing: gridSpacing) {
-                Text("Transcript")
-                    .foregroundStyle(AppColors.Gray50.color)
-                    .font(.system(size: headerFontSize.rawValue, weight: .medium))
+                if parts.count > 0 {
+                    Text("Transcript")
+                        .foregroundStyle(AppColors.Gray50.color)
+                        .font(.system(size: headerFontSize.rawValue, weight: .medium))
+                }
                 
                 LazyVStack(spacing: gridSpacing) {
                     ForEach(Array(parts.enumerated()), id: \.offset) { index, part in
@@ -427,20 +429,18 @@ public struct ResultsView: View {
         ZStack(alignment: .topLeading) {
             ScrollView {
                 VStack {
-                    if viewModel.transcriptParts.count > 0 && viewModel.pacingData.count > 0 {
-                        if (horizontalSizeClass == .compact) {
-                            ResultsContentView(
-                                size: .small,
-                                title: title,
-                                viewModel: $viewModel
-                            )
-                        } else {
-                            ResultsContentView(
-                                size: .large,
-                                title: title,
-                                viewModel: $viewModel
-                            )
-                        }
+                    if (horizontalSizeClass == .compact) {
+                        ResultsContentView(
+                            size: .small,
+                            title: title,
+                            viewModel: $viewModel
+                        )
+                    } else {
+                        ResultsContentView(
+                            size: .large,
+                            title: title,
+                            viewModel: $viewModel
+                        )
                     }
                 }
                 .safeAreaPadding(safeAreaInsets)
@@ -468,10 +468,11 @@ public struct ResultsView: View {
         }
     }
     
-    func processTranscriptionParts(value: [PresentationTranscriptRawPart]) -> ([PresentationTranscriptPart], Int) {
+    func processTranscriptionParts(value: [PresentationTranscriptRawPart]) -> ([PresentationTranscriptPart], Int, Int) {
         var transcriptionParts: [PresentationTranscriptPart] = []
         var tallyDuration: Int = 0
-
+        var tallyWords: Int = 0
+        
         for transcriptionRawPart in value {
             let bestTranscript = transcriptionRawPart.bestTranscript
             if bestTranscript.segments.count <= 0 {
@@ -486,6 +487,7 @@ public struct ResultsView: View {
                 return transcriptionRawPart.partId == v.id
             }
             
+            tallyWords += bestTranscript.formattedString.components(separatedBy: " ").count
             transcriptionParts.append(
                 .init(
                     title: presentationPart?.title ?? "No Title",
@@ -496,13 +498,18 @@ public struct ResultsView: View {
             )
         }
         
-        return (transcriptionParts, tallyDuration)
+        return (transcriptionParts, tallyDuration, tallyDuration > 0 ? 60_000 * tallyWords / tallyDuration : 0)
     }
     
     func processPacingData(value: [PresentationTranscriptRawPart], tallyDuration: Int) -> [PresentationPacingData] {
         var pacingData: [PresentationPacingData] = []
         if tallyDuration > 0 {
-            let bucketSize = max(tallyDuration / 1_000, 5_000)
+            var minBucketSize = 3_000
+            if tallyDuration > 20_000 {
+                minBucketSize = 5_000
+            }
+            
+            let bucketSize = max(tallyDuration / 100, minBucketSize)
             var bucketIndex: Int = 0
             var bucketFilledAcc = 0
             
@@ -607,12 +614,13 @@ public struct ResultsView: View {
                 return
             }
             
-            let (transcriptionParts, tallyDuration) = self.processTranscriptionParts(value: value)
+            let (transcriptionParts, tallyDuration, wpm) = self.processTranscriptionParts(value: value)
             let pacingData = self.processPacingData(value: value, tallyDuration: tallyDuration)
             
             self.viewModel.transcriptParts = transcriptionParts
             self.viewModel.duration = tallyDuration
             self.viewModel.pacingData = pacingData
+            self.viewModel.wpm = wpm
         }.store(in: &self.cancellableBag)
         viewModel.pacingData = [] // PresentationPacingData.mockData()
         animateIn()
