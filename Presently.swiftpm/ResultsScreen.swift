@@ -161,7 +161,7 @@ public struct ResultsContentView: View {
                         VStack(alignment: .leading) {
                             Text("Pacing")
                                 .frame(
-                                    maxWidth: 300,
+                                    maxWidth: .infinity,
                                     alignment: .leading
                                 )
                                 .foregroundStyle(AppColors.Gray300.color)
@@ -221,7 +221,7 @@ public struct ResultsContentView: View {
                                 VStack {
                                     Text("Insufficient Data")
                                         .frame(
-                                            maxWidth: 300,
+                                            maxWidth: .infinity,
                                             alignment: .center
                                         )
                                         .foregroundStyle(AppColors.Gray50.color)

@@ -41,7 +41,8 @@ final public class SpeechRecgonizer: ObservableObject {
     private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
     private var recognitionTask: SFSpeechRecognitionTask?
     private var numberOfAudioAmplitudes = 30
-    
+    private var processSampleCooldown: Double = 0
+
     @Published var transcriptions: [PresentationTranscriptRawPart] = []
     @Published var state: SpeechRecognizerState = .inactive
     @Published var error: Error?
@@ -60,7 +61,9 @@ final public class SpeechRecgonizer: ObservableObject {
                     throw RecognizerError.notPermittedToRecord
                 }
             } catch {
-                transcribe(error)
+                let errorMessage = asErrorMessage(error: error)
+                print("Error \(errorMessage)!")
+                await self.setError(error: error)
             }
         }
         let speechRecognizer = SFSpeechRecognizer(locale: Locale(identifier: "en-US"))
@@ -114,7 +117,6 @@ final public class SpeechRecgonizer: ObservableObject {
                 await reset(softReset: softStart)
             }
             
-            try? await Task.sleep(nanoseconds: 3_000_000_000)
             if let audioEngine = self.audioEngine, audioEngine.isRunning {
                 print("Audio engine is already running. Please stop.")
                 await self.setError(error: RecognizerError.recognizerStartFailed)
@@ -124,6 +126,7 @@ final public class SpeechRecgonizer: ObservableObject {
             if !softStart {
                 await self.setState(state: .starting)
             }
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
             let audioEngine = AVAudioEngine()
             let audioSession = AVAudioSession.sharedInstance()
             do {
@@ -185,8 +188,6 @@ final public class SpeechRecgonizer: ObservableObject {
         }
     }
    
-    private var processSampleCooldown: Double = 0
-    
     private func processSampleBuffer(_ buffer: AVAudioPCMBuffer) async {
         let now = Date().timeIntervalSince1970
         if now < processSampleCooldown {
@@ -328,11 +329,6 @@ final public class SpeechRecgonizer: ObservableObject {
         }
     }
 
-    private func transcribe(_ error: Error) {
-        let errorMessage = asErrorMessage(error: error)
-        print("Error \(errorMessage)!")
-    }
-    
 }
 
 func asErrorMessage(error: Error) -> String {
