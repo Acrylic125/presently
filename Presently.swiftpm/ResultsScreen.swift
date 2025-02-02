@@ -172,7 +172,6 @@ public struct ResultsContentView: View {
                             
                             let minTimestamp = pacingData.count > 0 ? timestamps.min()! : 0
                             let maxTimestamp = pacingData.count > 0 ? timestamps.max()! : 0
-                            let minWords = pacingData.count > 0 ? words.min()! : 0
                             let maxWords = pacingData.count > 0 ? words.max()! : 0
                             
                             Chart(pacingData) {
@@ -215,7 +214,7 @@ public struct ResultsContentView: View {
                                 }
                             }
                             .chartXScale(domain: minTimestamp ... maxTimestamp)
-                            .chartYScale(domain: minWords ... maxWords * 1.25)
+                            .chartYScale(domain: 0 ... maxWords * 1.25)
                             .frame(height: 240)
                         }
                         .frame(
@@ -469,10 +468,138 @@ public struct ResultsView: View {
         }
     }
     
+    func processTranscriptionParts(value: [PresentationTranscriptRawPart]) -> ([PresentationTranscriptPart], Int) {
+        var transcriptionParts: [PresentationTranscriptPart] = []
+        var tallyDuration: Int = 0
+
+        for transcriptionRawPart in value {
+            let bestTranscript = transcriptionRawPart.bestTranscript
+            if bestTranscript.segments.count <= 0 {
+                print("No segments found.")
+                continue
+            }
+            let lastSegment = bestTranscript.segments[bestTranscript.segments.count - 1]
+            let duration = Int((lastSegment.timestamp + lastSegment.duration) * 1_000)
+            tallyDuration += duration
+            
+            let presentationPart = presentationParts.first { v in
+                return transcriptionRawPart.partId == v.id
+            }
+            
+            transcriptionParts.append(
+                .init(
+                    title: presentationPart?.title ?? "No Title",
+                    img: presentationPart?.img ?? "No Image",
+                    duration: duration,
+                    content: bestTranscript.formattedString
+                )
+            )
+        }
+        
+        return (transcriptionParts, tallyDuration)
+    }
+    
+    func processPacingData(value: [PresentationTranscriptRawPart], tallyDuration: Int) -> [PresentationPacingData] {
+        var pacingData: [PresentationPacingData] = []
+        if tallyDuration > 0 {
+            let bucketSize = max(tallyDuration / 1_000, 5_000)
+            var bucketIndex: Int = 0
+            var bucketFilledAcc = 0
+            
+            var transcriptionRawPartIndex = 0
+            var transcriptionRawPartSegmentIndex = 0
+            var baseTimestamp: Int = 0
+            
+            var words: Float = 0
+//                print("Bucket size: \(bucketSize)")
+            
+//                print("Starting \(transcriptionRawPartIndex)")
+            let biasMultiplier: Float = 1.2
+            while true {
+                let durationAcc = bucketIndex * bucketSize + bucketFilledAcc
+                if value.count <= 0 || transcriptionRawPartIndex >= value.count {
+//                        print("  Words: \(words)")
+                    let datum = PresentationPacingData(
+                        timestamp: Float(durationAcc) / 1_000,
+                        words: (60_000 * words * biasMultiplier) / Float(bucketFilledAcc)
+                    )
+                    pacingData.append(datum)
+                    bucketIndex += 1
+                    bucketFilledAcc = 0
+                    words = 0
+                    print("Done")
+                    break
+                }
+                
+                // If the bucket is filled, we will save the current bucket and prepare for the next bucket.
+                if bucketFilledAcc >= bucketSize {
+//                        print("Words: \(words)")
+                    let datum = PresentationPacingData(
+                        timestamp: Float(durationAcc) / 1_000,
+                        words: (60_000 * words * biasMultiplier) / Float(bucketFilledAcc)
+                    )
+                    pacingData.append(datum)
+                    bucketIndex += 1
+                    bucketFilledAcc = 0
+                    words = 0
+//                        print("Starting \(transcriptionRawPartIndex)")
+                }
+                
+                let transcriptionRawPart = value[transcriptionRawPartIndex]
+                let transcriptionRawPartSegments = transcriptionRawPart.segments
+                // Move to next segment if the index cursor overflows.
+                if transcriptionRawPartSegments.count <= 0 || transcriptionRawPartSegmentIndex >= transcriptionRawPartSegments.count {
+                    transcriptionRawPartIndex += 1
+                    transcriptionRawPartSegmentIndex = 0
+                    if transcriptionRawPart.segments.count > 0 {
+                        let lastSegment = transcriptionRawPart.segments[transcriptionRawPartSegments.count - 1]
+                        baseTimestamp += Int((lastSegment.timestamp + lastSegment.duration) * 1_000)
+                    }
+                    continue
+                }
+                
+                let segment = transcriptionRawPartSegments[transcriptionRawPartSegmentIndex]
+                
+                // First we check if the segment starting time matches up with the duration acc.
+                // This is to factor in gaps between segments.
+                let startingTime = (baseTimestamp + Int(segment.timestamp) * 1000)
+                if durationAcc < startingTime {
+                    // E.g. Starting time = 1000, durationAcc = 700
+                    // Case 1: Bucket size = 200, BucketFilledAcc = 100, gapDurationUsed = 100
+                    // Case 2: Bucket size = 200, BucketFilledAcc = 0, gapDurationUsed = 200
+                    // Case 3: Bucket size = 400, BucketFilledAcc = 0, gapDurationUsed = 300
+                    let gapDurationUsed = min(startingTime - durationAcc, bucketSize, bucketSize - bucketFilledAcc)
+                    bucketFilledAcc += gapDurationUsed
+//                        print("  Gap = \(gapDurationUsed), Filled = \(bucketFilledAcc)")
+                    continue
+                }
+                let endingTime = startingTime + Int(segment.duration * 1000)
+                if durationAcc >= endingTime {
+                    transcriptionRawPartSegmentIndex += 1
+                    continue
+                }
+                
+                let segmentInDuration = durationAcc - startingTime
+                // E>g. Duration 1000,
+                // Case 1: Bucket size = 1100, Segment in duration = 0, segmentDurationUsed = 1000
+                // Case 2: Bucket size = 300, Segment in duration = 200, segmentDurationUsed = 300
+                // Case 3: Bucket size = 500, Segment in duration = 600, segmentDurationUsed = 400
+                let segmentDurationUsed = min(Int(segment.duration * 1000) - segmentInDuration, bucketSize, bucketSize - bucketFilledAcc)
+                bucketFilledAcc += segmentDurationUsed
+                let numberOfWords = segment.substring.components(separatedBy: " ").count
+                let proportion = Float(segmentDurationUsed) / Float(segment.duration * 1000)
+                let wordsAdded = Float(numberOfWords) * proportion
+//                    print("  Segment \(segmentDurationUsed), filled = \(bucketFilledAcc), words added = \(wordsAdded), raw count = \(numberOfWords), Proportion = \(proportion), raw = \(segment.substring)")
+
+                words += wordsAdded
+            }
+        }
+
+        return pacingData
+    }
+    
     func onAppear() {
         speechRecognizer.$transcriptions.sink { value in
-            var transcriptionParts: [PresentationTranscriptPart] = []
-            
             if value.count <= 0 {
                 self.viewModel.transcriptParts = []
                 self.viewModel.duration = 0
@@ -480,110 +607,8 @@ public struct ResultsView: View {
                 return
             }
             
-            var tallyDuration: Int = 0
-            for transcriptionRawPart in value {
-                let bestTranscript = transcriptionRawPart.bestTranscript
-                if bestTranscript.segments.count <= 0 {
-                    print("No segments found.")
-                    continue
-                }
-                let lastSegment = bestTranscript.segments[bestTranscript.segments.count - 1]
-                let duration = Int((lastSegment.timestamp + lastSegment.duration) * 1_000)
-                tallyDuration += duration
-                
-                let presentationPart = presentationParts.first { v in
-                    return transcriptionRawPart.partId == v.id
-                }
-                
-                transcriptionParts.append(
-                    .init(
-                        title: presentationPart?.title ?? "No Title",
-                        img: presentationPart?.img ?? "No Image",
-                        duration: duration,
-                        content: bestTranscript.formattedString
-                    )
-                )
-            }
-            
-            var pacingData: [PresentationPacingData] = []
-            if tallyDuration > 0 {
-                let bucketSize = max(tallyDuration / 1_000, 1_000)
-                var bucketIndex: Int = 0
-                var bucketFilledAcc = 0
-                
-                var transcriptionRawPartIndex = 0
-                var transcriptionRawPartSegmentIndex = 0
-                var baseTimestamp: Int = 0
-                
-                var words: Float = 0
-                
-                while true {
-                    if value.count <= 0 || transcriptionRawPartIndex >= value.count {
-                        break
-                    }
-                    
-                    let durationAcc = bucketIndex * bucketSize + bucketFilledAcc
-                    
-                    // If the bucket is filled, we will save the current bucket and prepare for the next bucket.
-                    if bucketFilledAcc >= bucketSize {
-                        print("Words: \(words)")
-                        pacingData.append(
-                            .init(
-                                timestamp: Float(durationAcc) / 1_000,
-                                words: (60 * words)
-                            )
-                        )
-                        bucketIndex += 1
-                        bucketFilledAcc = 0
-                        words = 0
-                    }
-                    
-                    let transcriptionRawPart = value[transcriptionRawPartIndex]
-                    let transcriptionRawPartSegments = transcriptionRawPart.segments
-                    // Move to next segment if the index cursor overflows.
-                    if transcriptionRawPartSegments.count <= 0 || transcriptionRawPartSegmentIndex >= transcriptionRawPartSegments.count {
-                        transcriptionRawPartIndex += 1
-                        transcriptionRawPartSegmentIndex = 0
-                        if transcriptionRawPart.segments.count > 0 {
-                            let lastSegment = transcriptionRawPart.segments[transcriptionRawPartSegments.count - 1]
-                            baseTimestamp += Int((lastSegment.timestamp + lastSegment.duration) * 1_000)
-                        }
-                        continue
-                    }
-                    
-                    let segment = transcriptionRawPartSegments[transcriptionRawPartSegmentIndex]
-                    
-                    // First we check if the segment starting time matches up with the duration acc.
-                    // This is to factor in gaps between segments.
-                    let startingTime = (baseTimestamp + Int(segment.timestamp) * 1000)
-                    if durationAcc < startingTime {
-                        // E.g. Starting time = 1000, durationAcc = 700
-                        // Case 1: Bucket size = 200, BucketFilledAcc = 100, gapDurationUsed = 100
-                        // Case 2: Bucket size = 200, BucketFilledAcc = 0, gapDurationUsed = 200
-                        // Case 3: Bucket size = 400, BucketFilledAcc = 0, gapDurationUsed = 300
-                        let gapDurationUsed = min(startingTime - durationAcc, bucketSize, bucketSize - bucketFilledAcc)
-                        bucketFilledAcc += gapDurationUsed
-                        print("Gap \(gapDurationUsed)")
-                        continue
-                    }
-                    let endingTime = startingTime + Int(segment.duration * 1000)
-                    if durationAcc >= endingTime {
-                        transcriptionRawPartSegmentIndex += 1
-                        continue
-                    }
-                    
-                    let segmentInDuration = durationAcc - startingTime
-                    // E>g. Duration 1000,
-                    // Case 1: Bucket size = 1100, Segment in duration = 0, segmentDurationUsed = 1000
-                    // Case 2: Bucket size = 300, Segment in duration = 200, segmentDurationUsed = 300
-                    // Case 3: Bucket size = 500, Segment in duration = 600, segmentDurationUsed = 400
-                    let segmentDurationUsed = min(Int(segment.duration * 1000) - segmentInDuration, bucketSize, bucketSize - bucketFilledAcc)
-                    bucketFilledAcc += segmentDurationUsed
-                    print("Segment \(segmentDurationUsed) P1 = \(Int(segment.duration * 1000) - segmentInDuration) P2 = \(bucketSize) P3 = \(bucketSize - bucketFilledAcc)")
-
-                    words += Float(segment.substring.count) * Float(segmentDurationUsed) / Float(bucketSize)
-                }
-            }
+            let (transcriptionParts, tallyDuration) = self.processTranscriptionParts(value: value)
+            let pacingData = self.processPacingData(value: value, tallyDuration: tallyDuration)
             
             self.viewModel.transcriptParts = transcriptionParts
             self.viewModel.duration = tallyDuration
