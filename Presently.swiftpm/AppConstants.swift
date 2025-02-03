@@ -27,6 +27,9 @@ enum AppColors: String {
     
     case Red400 = "red400"
     
+    case Green100 = "green100"
+    case Green400 = "green400"
+
     var uiColor: UIColor {
         guard let color = UIColor(named: self.rawValue) else {
             // Fallback to a default color if the named color is not found

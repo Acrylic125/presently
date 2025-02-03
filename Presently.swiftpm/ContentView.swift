@@ -1,6 +1,7 @@
 import SwiftUI
 import AVFoundation
 import Charts
+import Speech
 
 struct PresentationSelectionView: View {
     
@@ -134,6 +135,9 @@ struct PresentationSelectionView: View {
 
 struct ContentView: View {
     
+    @State private var isMicrophoneAuthorized = false
+    @State private var isSpeechRecognitionAuthorized = false
+    
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
     
     var body: some View {
@@ -144,20 +148,27 @@ struct ContentView: View {
         let headerTextSize: AppFontSize = horizontalSizeClass == .regular ? .xl4 : .xl3
 
         VStack(alignment: .leading) {
-            ScrollView {
-                VStack(alignment: .leading) {
-                    Text("Get Practicing")
+            if isMicrophoneAuthorized && isSpeechRecognitionAuthorized {
+                ScrollView {
+                    VStack(alignment: .leading) {
+                        Text("Get Practicing")
+                            .frame(
+                                maxWidth: 440,
+                                alignment: .leading
+                            )
+                            .foregroundStyle(AppColors.Gray50.color)
+                            .font(.system(size: headerTextSize.rawValue, weight: .black))
+                        
+                        PresentationSelectionView(
+                            size: size
+                        )
                         .frame(
-                            maxWidth: 440,
+                            maxHeight: .infinity,
                             alignment: .leading
                         )
-                        .foregroundStyle(AppColors.Gray50.color)
-                        .font(.system(size: headerTextSize.rawValue, weight: .black))
-                    
-                    PresentationSelectionView(
-                        size: size
-                    )
+                    }
                     .frame(
+                        maxWidth: .infinity,
                         maxHeight: .infinity,
                         alignment: .leading
                     )
@@ -167,18 +178,64 @@ struct ContentView: View {
                     maxHeight: .infinity,
                     alignment: .leading
                 )
+                .safeAreaPadding(safeAreaInsets)
+                .padding(.horizontal, 24)
+                .padding(.vertical, 24)
+            } else {
+                PermissionScreen(
+                    isMicrophoneAuthorized: isMicrophoneAuthorized,
+                    isSpeechRecognitionAuthorized: isSpeechRecognitionAuthorized
+                )
             }
-            .frame(
-                maxWidth: .infinity,
-                maxHeight: .infinity,
-                alignment: .leading
-            )
-            .safeAreaPadding(safeAreaInsets)
-            .padding(.horizontal, 24)
-            .padding(.vertical, 24)
+        }
+        .onAppear() {
+            validatePermissions()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
+            validatePermissions()
         }
         .ignoresSafeArea()
         .navigationBarBackButtonHidden()
         .background(AppColors.Gray950.color)
     }
+    
+    private func validatePermissions() {
+        switch AVAudioApplication.shared.recordPermission {
+        case .granted:
+            isMicrophoneAuthorized = true
+        default:
+            isMicrophoneAuthorized = false
+        }
+        
+        // Check speech recognition permission
+        if SFSpeechRecognizer.authorizationStatus() == .authorized  {
+            isSpeechRecognitionAuthorized = true
+        } else {
+            isSpeechRecognitionAuthorized = false
+        }
+        
+        if !isMicrophoneAuthorized || !isSpeechRecognitionAuthorized {
+            Task {
+                if !isMicrophoneAuthorized {
+                    AVAudioApplication.requestRecordPermission() { authorized in
+                        if authorized {
+                            Task { @MainActor in
+                                isMicrophoneAuthorized = true
+                            }
+                        }
+                    }
+                }
+                if !isSpeechRecognitionAuthorized {
+                    SFSpeechRecognizer.requestAuthorization() { status in
+                        if status == .authorized {
+                            Task { @MainActor in
+                                isSpeechRecognitionAuthorized = true
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
 }

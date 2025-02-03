@@ -135,10 +135,13 @@ struct PresentationPresentVX: View {
 
 struct PresentstionPresentStatusView: View {
     let size: AppContentSize
-    let state: SpeechRecognizerState
-    let error: Error?
-    
+    let partId: String
+    let goBack: () -> Void
+    @ObservedObject var speechRecognizer: SpeechRecgonizer
+
     var body: some View {
+        let state = speechRecognizer.state
+        let error = speechRecognizer.error
         
         if (state == .inactive) {
             let buttonSize: AppButtonSize = size == .large ? .large : .small
@@ -158,7 +161,7 @@ struct PresentstionPresentStatusView: View {
                 Spacer()
                 VStack(spacing: spacing) {
                     VStack {
-                        Image(systemName: "exclamationmark.triangle")
+                        Image(systemName: "multiply.circle")
                             .resizable()
                             .aspectRatio(contentMode: .fit)
                             .foregroundStyle(AppColors.Red400.color)
@@ -191,13 +194,17 @@ struct PresentstionPresentStatusView: View {
                     }
                     
                     HStack(spacing: buttonSpacing) {
-                        AppButton(action: {}) {
+                        AppButton(action: {
+                            goBack()
+                        }) {
                             Text("Back")
                         }
                         .size(buttonSize)
                         .variant(.ghost)
                         
-                        AppButton(action: {}) {
+                        AppButton(action: {
+                            speechRecognizer.start(partId: partId)
+                        }) {
                             Text("Retry")
                         }
                         .size(buttonSize)
@@ -213,7 +220,7 @@ struct PresentstionPresentStatusView: View {
                 .background(
                     RoundedRectangle(cornerRadius: containerBorderRadius)
                         .fill(AppColors.Gray950.color)
-                        .stroke(AppColors.Red400.color, lineWidth: 1)
+                        .stroke(AppColors.Gray700.color, lineWidth: 1)
                 )
                 Spacer()
             }
@@ -540,10 +547,17 @@ struct PresentationPresentView: View {
         }
         
         if viewModel.shouldShowSttusView {
+//            PresentstionPresentStatusView(
+//                size: appContentSize,
+//                state: speechRecognizer.state,
+//                
+//                error: speechRecognizer.error
+//            )
             PresentstionPresentStatusView(
                 size: appContentSize,
-                state: speechRecognizer.state,
-                error: speechRecognizer.error
+                partId: presentationPart.id,
+                goBack: onClose,
+                speechRecognizer: speechRecognizer
             )
             .opacity(self.viewModel.showStatusViewAppearState)
             .onAppear() {

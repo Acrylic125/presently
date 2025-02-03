@@ -569,7 +569,6 @@ public struct ResultsView: View {
         let biasMultiplier: Float = 1.2
         var pacingData: [PresentationPacingData] = []
         var totalWords: Float = 0
-        var totalTime: Float = 0
         
         if tallyDuration > 0 {
             var minBucketSize = 3_000
@@ -682,17 +681,20 @@ public struct ResultsView: View {
                 return
             }
             
-            let (transcriptionParts, tallyDuration) = self.processTranscriptionParts(value: value)
-            let (pacingData, wpm) = self.processPacingData(value: value, tallyDuration: tallyDuration)
-            
-            self.viewModel.transcriptParts = transcriptionParts
-            self.viewModel.duration = tallyDuration
-            self.viewModel.pacingData = pacingData
-            self.viewModel.wpm = wpm
+            Task {
+                let (transcriptionParts, tallyDuration) = self.processTranscriptionParts(value: value)
+                let (pacingData, wpm) = self.processPacingData(value: value, tallyDuration: tallyDuration)
+                
+                Task { @MainActor in
+                    self.viewModel.transcriptParts = transcriptionParts
+                    self.viewModel.duration = tallyDuration
+                    self.viewModel.pacingData = pacingData
+                    self.viewModel.wpm = wpm
+                }
+            }
         }.store(in: &self.cancellableBag)
         viewModel.pacingData = [] // PresentationPacingData.mockData()
         animateIn()
-        
     }
     
     func animateIn() {
