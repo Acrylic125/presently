@@ -39,7 +39,9 @@ struct PresentationSelectionView: View {
                             } else {
                                 let presentation = All[presentationIndex]
                                 NavigationLink(
-                                    destination: PresentationView(title: presentation.title)
+                                    destination: PresentationView(
+                                        presentation: presentation
+                                    )
                                 ) {
                                     VStack(
                                         spacing: 24
@@ -85,7 +87,9 @@ struct PresentationSelectionView: View {
                     let presentation = All[index]
                     
                     NavigationLink(
-                        destination: PresentationView(title: presentation.title)
+                        destination: PresentationView(
+                            presentation: presentation
+                        )
                     ) {
                         HStack(
                             spacing: 24

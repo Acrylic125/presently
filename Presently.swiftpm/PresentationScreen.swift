@@ -146,7 +146,7 @@ enum PresentationViewType {
 
 struct PresentationView: View {
     
-    let title: String;
+    let presentation: Presentation
     
     @State var viewType: PresentationViewType = .Overview
     @StateObject var speechRecognizer = SpeechRecgonizer()
@@ -155,29 +155,30 @@ struct PresentationView: View {
         ZStack(alignment: .topLeading) {
             if (viewType == .Overview) {
                 PresentationOverviewView(
-                    title: title,
-                    context: AppPresentations.PlaygroundObservationsPresentation.context,
-                    firstPartId: AppPresentations.PlaygroundObservationsPresentation.parts[0].id,
+                    title: presentation.title,
+                    context: presentation.context,
+                    img: presentation.imgFull,
+                    firstPartId: presentation.parts[0].id,
                     viewType: $viewType,
                     speechRecognizer: speechRecognizer
                 )
             } else if (viewType == .Prepare) {
                 PresentationPrepareView(
-                    title: title,
-                    presentationParts: AppPresentations.PlaygroundObservationsPresentation.parts,
+                    title: presentation.title,
+                    presentationParts: presentation.parts,
                     viewType: $viewType,
                     speechRecognizer: speechRecognizer
                 )
             } else if (viewType == .Results) {
                 ResultsView(
-                    title: title,
-                    presentationParts: AppPresentations.PlaygroundObservationsPresentation.parts,
+                    title: presentation.title,
+                    presentationParts: presentation.parts,
                     speechRecognizer: speechRecognizer
                 )
             } else {
                 PresentationPresentView(
-                    title: title,
-                    presentationParts: AppPresentations.PlaygroundObservationsPresentation.parts,
+                    title: presentation.title,
+                    presentationParts: presentation.parts,
                     viewType: $viewType,
                     speechRecognizer: speechRecognizer
                 )

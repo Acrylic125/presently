@@ -467,7 +467,7 @@ struct PresentationPresentView: View {
                 )
             }
             .title(title)
-            .img("playground")
+            .img(presentationPart.img)
         }
         
         PresentationToolbar(

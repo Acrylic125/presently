@@ -49,6 +49,7 @@ struct PresentationOverviewContentView: View {
 struct PresentationOverviewView: View {
     let title: String;
     let context: [StringToken];
+    let img: String;
     let firstPartId: String
     
     @Binding var viewType: PresentationViewType
@@ -73,7 +74,7 @@ struct PresentationOverviewView: View {
                 )
             }
             .title(title)
-            .img("playground")
+            .img(img)
         } else {
             PresentationCompactLayoutView(
                 imageAppearAnimationState: viewModel.appearTransitionState
@@ -86,7 +87,7 @@ struct PresentationOverviewView: View {
 
             }
             .title(title)
-            .img("playground")
+            .img(img)
         }
 
         // Toolbar
