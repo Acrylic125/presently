@@ -517,7 +517,6 @@ struct PresentationPresentView: View {
             
             if (page >= lastPage) {
                 AppButton(action: {
-                    print("======> \(speechRecognizer.transcriptions.count) A1")
                     goTo(viewType: .Results)
                 }) {
                     Text("Done")
@@ -528,7 +527,6 @@ struct PresentationPresentView: View {
                 )
             } else {
                 AppButton(action: {
-                    print("======> \(speechRecognizer.transcriptions.count) A2")
                     goTo(viewType: .Results)
                 }) {
                     Text("Done")

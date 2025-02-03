@@ -126,7 +126,7 @@ final public class SpeechRecgonizer: ObservableObject {
             if !softStart {
                 await self.setState(state: .starting)
             }
-            try? await Task.sleep(nanoseconds: 3_000_000_000)
+//            try? await Task.sleep(nanoseconds: 3_000_000_000)
             let audioEngine = AVAudioEngine()
             let audioSession = AVAudioSession.sharedInstance()
             do {
@@ -191,7 +191,6 @@ final public class SpeechRecgonizer: ObservableObject {
     private func processSampleBuffer(_ buffer: AVAudioPCMBuffer) async {
         let now = Date().timeIntervalSince1970
         if now < processSampleCooldown {
-            print("\(processSampleCooldown - now)")
             return
         }
         self.processSampleCooldown = now + 0.2
@@ -325,7 +324,7 @@ final public class SpeechRecgonizer: ObservableObject {
             newTranscriptions[transcriptionIndex] = cur
             self.transcriptions = newTranscriptions
         } else {
-            print("Wtf? \(transcriptionIndex)")
+            print("Transcription Index overflow: \(transcriptionIndex)")
         }
     }
 

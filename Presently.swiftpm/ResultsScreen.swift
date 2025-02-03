@@ -34,21 +34,130 @@ final class ResultsViewModel {
     var chartAppearTransitionState: Double = 0
 }
 
+struct ResultsCharView: View {
+    let size: AppContentSize
+    let pacingData: [PresentationPacingData]
+    
+    private var areaBackground: Gradient {
+        return Gradient(colors: [AppColors.Primary500.color, AppColors.Primary500.color.opacity(0.1)])
+    }
+
+    var body: some View {
+        let containerPadding: CGFloat = size == .large ? 24 : 12
+        let headerFontSize: AppFontSize = size == .large ? .xl2 : .lg
+
+        let maxTimestamp = pacingData.map { $0.timestamp }.max() ?? 0
+        let intervalPoints = maxTimestamp > 0 ? Array(stride(from: 0, through: maxTimestamp, by: maxTimestamp / 4)) : [0]
+        
+        if pacingData.count > 1 {
+            let timestamps = pacingData.map { $0.timestamp }
+            let words = pacingData.map { $0.words }
+            
+            let minTimestamp = timestamps.min() ?? 0
+            let maxWords = max(words.max() ?? 150, 150)
+            
+            Chart(pacingData) {
+                AreaMark(
+                    x: .value("Timestamp", $0.timestamp),
+                    y: .value("Words", $0.words)
+                )
+                .interpolationMethod(.catmullRom)
+                .foregroundStyle(areaBackground)
+                
+                LineMark(
+                    x: .value("Timestamp", $0.timestamp),
+                    y: .value("Words", $0.words)
+                )
+                .interpolationMethod(.catmullRom)
+                .foregroundStyle(AppColors.Primary500.color)
+
+//                LineMark(
+//                    x: .value("Timestamp", $0.timestamp),
+//                    y: .value("Safe", 50)
+//                )
+//                .lineStyle(by: .value("AnotherValue", "Safe"))
+//                .interpolationMethod(.catmullRom)
+//                .foregroundStyle(Color.blue)
+
+                RuleMark(
+                    y: .value("Min Pacing", 150)
+                )
+                .foregroundStyle(
+                    AppColors.Primary500.color
+                )
+                .lineStyle(StrokeStyle(dash: [5, 5]))
+                .annotation(position: .top, alignment: .trailing) {
+                    Text("Max. Target")
+                        .font(.caption)
+                        .foregroundColor(AppColors.Primary500.color)
+                }
+                RuleMark(
+                    y: .value("Min Pacing", 100)
+                )
+                .foregroundStyle(
+                    AppColors.Primary500.color
+                )
+                .lineStyle(StrokeStyle(dash: [5, 5]))
+                .annotation(position: .top, alignment: .trailing) {
+                    Text("Min. Target")
+                        .font(.caption)
+                        .foregroundColor(AppColors.Primary500.color)
+                }
+//                
+//                RuleMark(y: .value("Average", 50))
+//                    .foregroundStyle(AppColors.Primary500.color)
+//                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [5]))
+            }
+            .chartYAxis {
+                AxisMarks() { value in
+                    AxisValueLabel() {
+                        if let timestamp = value.as(Float.self) {
+                            Text(String(format: "%.1f", timestamp))
+                                .foregroundStyle(AppColors.Gray300.color)
+                        }
+                    }
+                }
+            }
+            .chartXAxis {
+                AxisMarks(values: intervalPoints) { value in
+                    AxisValueLabel(centered: true) {
+                        if let timestamp = value.as(Float.self) {
+                            Text(String(format: "%.1f", timestamp))
+                                .foregroundStyle(AppColors.Gray300.color)
+                        }
+                    }
+                }
+            }
+            .chartXScale(domain: minTimestamp ... maxTimestamp)
+            .chartYScale(domain: 0 ... maxWords * 1.25)
+            .frame(height: 240)
+        } else {
+            VStack {
+                Text("Insufficient Data")
+                    .frame(
+                        maxWidth: .infinity,
+                        alignment: .center
+                    )
+                    .foregroundStyle(AppColors.Gray50.color)
+                    .font(.system(size: headerFontSize.rawValue, weight: .medium))
+                    .padding(.horizontal, containerPadding)
+            }
+            .frame(
+                height: 240
+            )
+        }
+
+    }
+}
+
 public struct ResultsContentView: View {
     let size: AppContentSize
     let title: String;
     @Binding var viewModel: ResultsViewModel
 
-    private var areaBackground: Gradient {
-        return Gradient(colors: [AppColors.Primary500.color, AppColors.Primary500.color.opacity(0.1)])
-    }
-    
     public var body: some View {
         let pacingData = viewModel.pacingData
         let parts = viewModel.transcriptParts
-        
-        let maxTimestamp = pacingData.map { $0.timestamp }.max() ?? 0
-        let intervalPoints = maxTimestamp > 0 ? Array(stride(from: 0, through: maxTimestamp, by: maxTimestamp / 4)) : [0]
         
         let gridSpacing: CGFloat = size == .large ? 20 : 12
         let containerPadding: CGFloat = size == .large ? 24 : 12
@@ -168,70 +277,10 @@ public struct ResultsContentView: View {
                                 .font(.system(size: headerFontSize.rawValue, weight: .medium))
                                 .padding(.horizontal, containerPadding)
                             
-                            if pacingData.count > 1 {
-                                let timestamps = pacingData.map { $0.timestamp }
-                                let words = pacingData.map { $0.words }
-                                
-                                let minTimestamp = timestamps.min() ?? 0
-                                let maxWords = max(words.max() ?? 150, 150)
-                                
-                                Chart(pacingData) {
-                                    LineMark(
-                                        x: .value("Timestamp", $0.timestamp),
-                                        y: .value("Words", $0.words)
-                                    )
-                                    .interpolationMethod(.catmullRom)
-                                    .foregroundStyle(AppColors.Primary500.color)
-                                    
-                                    AreaMark(
-                                        x: .value("Timestamp", $0.timestamp),
-                                        y: .value("Words", $0.words)
-                                    )
-                                    .interpolationMethod(.catmullRom)
-                                    .foregroundStyle(areaBackground)
-                                    
-                                    RuleMark(y: .value("Average", 50))
-                                        .foregroundStyle(AppColors.Primary500.color)
-                                        .lineStyle(StrokeStyle(lineWidth: 1, dash: [5]))
-                                }
-                                .chartYAxis {
-                                    AxisMarks() { value in
-                                        AxisValueLabel() {
-                                            if let timestamp = value.as(Float.self) {
-                                                Text(String(format: "%.1f", timestamp))
-                                                    .foregroundStyle(AppColors.Gray300.color)
-                                            }
-                                        }
-                                    }
-                                }
-                                .chartXAxis {
-                                    AxisMarks(values: intervalPoints) { value in
-                                        AxisValueLabel(centered: true) {
-                                            if let timestamp = value.as(Float.self) {
-                                                Text(String(format: "%.1f", timestamp))
-                                                    .foregroundStyle(AppColors.Gray300.color)
-                                            }
-                                        }
-                                    }
-                                }
-                                .chartXScale(domain: minTimestamp ... maxTimestamp)
-                                .chartYScale(domain: 0 ... maxWords * 1.25)
-                                .frame(height: 240)
-                            } else {
-                                VStack {
-                                    Text("Insufficient Data")
-                                        .frame(
-                                            maxWidth: .infinity,
-                                            alignment: .center
-                                        )
-                                        .foregroundStyle(AppColors.Gray50.color)
-                                        .font(.system(size: headerFontSize.rawValue, weight: .medium))
-                                        .padding(.horizontal, containerPadding)
-                                }
-                                .frame(
-                                    height: 240
-                                )
-                            }
+                            ResultsCharView(
+                                size: size,
+                                pacingData: pacingData
+                            )
                         }
                         .frame(
                             maxWidth: .infinity,
