@@ -89,7 +89,7 @@ struct ResultsCharView: View {
                 .annotation(position: .top, alignment: .trailing) {
                     Text("Max. Target")
                         .font(.caption)
-                        .foregroundColor(AppColors.Primary500.color)
+                        .foregroundColor(AppColors.Gray50.color)
                 }
                 RuleMark(
                     y: .value("Min Pacing", 100)
@@ -101,7 +101,7 @@ struct ResultsCharView: View {
                 .annotation(position: .top, alignment: .trailing) {
                     Text("Min. Target")
                         .font(.caption)
-                        .foregroundColor(AppColors.Primary500.color)
+                        .foregroundColor(AppColors.Gray50.color)
                 }
 //                
 //                RuleMark(y: .value("Average", 50))
@@ -534,10 +534,9 @@ public struct ResultsView: View {
         }
     }
     
-    func processTranscriptionParts(value: [PresentationTranscriptRawPart]) -> ([PresentationTranscriptPart], Int, Int) {
+    func processTranscriptionParts(value: [PresentationTranscriptRawPart]) -> ([PresentationTranscriptPart], Int) {
         var transcriptionParts: [PresentationTranscriptPart] = []
         var tallyDuration: Int = 0
-        var tallyWords: Int = 0
         
         for transcriptionRawPart in value {
             let bestTranscript = transcriptionRawPart.bestTranscript
@@ -553,7 +552,6 @@ public struct ResultsView: View {
                 return transcriptionRawPart.partId == v.id
             }
             
-            tallyWords += bestTranscript.formattedString.components(separatedBy: " ").count
             transcriptionParts.append(
                 .init(
                     title: presentationPart?.title ?? "No Title",
@@ -564,11 +562,15 @@ public struct ResultsView: View {
             )
         }
         
-        return (transcriptionParts, tallyDuration, tallyDuration > 0 ? 60_000 * tallyWords / tallyDuration : 0)
+        return (transcriptionParts, tallyDuration)
     }
     
-    func processPacingData(value: [PresentationTranscriptRawPart], tallyDuration: Int) -> [PresentationPacingData] {
+    func processPacingData(value: [PresentationTranscriptRawPart], tallyDuration: Int) -> ([PresentationPacingData], Int) {
+        let biasMultiplier: Float = 1.2
         var pacingData: [PresentationPacingData] = []
+        var totalWords: Float = 0
+        var totalTime: Float = 0
+        
         if tallyDuration > 0 {
             var minBucketSize = 3_000
             if tallyDuration > 20_000 {
@@ -587,7 +589,6 @@ public struct ResultsView: View {
 //                print("Bucket size: \(bucketSize)")
             
 //                print("Starting \(transcriptionRawPartIndex)")
-            let biasMultiplier: Float = 1.2
             while true {
                 let durationAcc = bucketIndex * bucketSize + bucketFilledAcc
                 if value.count <= 0 || transcriptionRawPartIndex >= value.count {
@@ -619,13 +620,13 @@ public struct ResultsView: View {
                 }
                 
                 let transcriptionRawPart = value[transcriptionRawPartIndex]
-                let transcriptionRawPartSegments = transcriptionRawPart.segments
+                let transcriptionRawPartSegments = transcriptionRawPart.bestTranscript.segments
                 // Move to next segment if the index cursor overflows.
                 if transcriptionRawPartSegments.count <= 0 || transcriptionRawPartSegmentIndex >= transcriptionRawPartSegments.count {
                     transcriptionRawPartIndex += 1
                     transcriptionRawPartSegmentIndex = 0
-                    if transcriptionRawPart.segments.count > 0 {
-                        let lastSegment = transcriptionRawPart.segments[transcriptionRawPartSegments.count - 1]
+                    if transcriptionRawPartSegments.count > 0 {
+                        let lastSegment = transcriptionRawPartSegments[transcriptionRawPartSegments.count - 1]
                         baseTimestamp += Int((lastSegment.timestamp + lastSegment.duration) * 1_000)
                     }
                     continue
@@ -665,10 +666,11 @@ public struct ResultsView: View {
 //                    print("  Segment \(segmentDurationUsed), filled = \(bucketFilledAcc), words added = \(wordsAdded), raw count = \(numberOfWords), Proportion = \(proportion), raw = \(segment.substring)")
 
                 words += wordsAdded
+                totalWords += wordsAdded
             }
         }
 
-        return pacingData
+        return (pacingData, tallyDuration > 0 ? Int((totalWords * 60_000 * biasMultiplier)) / tallyDuration : 0)
     }
     
     func onAppear() {
@@ -680,8 +682,8 @@ public struct ResultsView: View {
                 return
             }
             
-            let (transcriptionParts, tallyDuration, wpm) = self.processTranscriptionParts(value: value)
-            let pacingData = self.processPacingData(value: value, tallyDuration: tallyDuration)
+            let (transcriptionParts, tallyDuration) = self.processTranscriptionParts(value: value)
+            let (pacingData, wpm) = self.processPacingData(value: value, tallyDuration: tallyDuration)
             
             self.viewModel.transcriptParts = transcriptionParts
             self.viewModel.duration = tallyDuration

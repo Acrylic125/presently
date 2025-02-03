@@ -29,7 +29,6 @@ enum RecognizerError: Error {
 
 public struct PresentationTranscriptRawPart {
     var bestTranscript: SFTranscription
-    var segments: [SFTranscriptionSegment]
     var partId: String
     var startTime: Int
 }
@@ -98,7 +97,6 @@ final public class SpeechRecgonizer: ObservableObject {
         self.transcriptions.append(
             .init(
                 bestTranscript: .init(),
-                segments: [],
                 partId: partId,
                 startTime: Int(Date().timeIntervalSince1970)
             )
@@ -314,7 +312,6 @@ final public class SpeechRecgonizer: ObservableObject {
         if transcriptionIndex < self.transcriptions.count {
             var cur = self.transcriptions[transcriptionIndex]
             cur.bestTranscript = bestTranscription
-            cur.segments = bestTranscription.segments
             
             // Clone to publicize change
             var newTranscriptions: [PresentationTranscriptRawPart] = []
