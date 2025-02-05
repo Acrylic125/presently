@@ -83,6 +83,7 @@ struct PresentationRegularLayoutView<Content: View>: View {
                             )
                             .scaleEffect(imageAppearAnimationState)
                     }
+                    .padding(.horizontal, 24)
                 }
                 .frame(
                     height: pimgHeight
@@ -217,6 +218,7 @@ struct PresentationCompactLayoutView<Content: View>: View {
                             )
                             .scaleEffect(imageAppearAnimationState)
                     }
+                    .padding(.horizontal, 24)
                 }
                 .frame(
                     height: pimgHeight

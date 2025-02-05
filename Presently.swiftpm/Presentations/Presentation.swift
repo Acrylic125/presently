@@ -123,5 +123,72 @@ public struct AppPresentations {
         imgRegular: "Display Image - Playground Observations Regular"
     )
     
+    static let ArtOfCommunicationPresentation: Presentation = Presentation(
+        id: "Art of Communication",
+        title: "Art of Communication",
+        parts: [
+            PresentationPart(
+                id: "1",
+                title: "The need to communicate",
+                content: tokenizeStr("Communication is how we <h>get our ideas across</h> to our <h>audience</h>.\n \nIt comes in when we <h>talk to people</h>, <h>present</h>, and <h>design</h>."),
+                hint: nil,
+                img: "Presentation Image - Art of Communication Need for Communication"
+            ),
+            PresentationPart(
+                id: "2",
+                title: "Think about the audience",
+                content: tokenizeStr("Firstly, understand who your <h>audience</h> is.\n \nFind out what sort of people they are, their generalinterests, and passion.\n \nThis orients what you plan to <h>communicate</h> and how you <h>frame</h> things."),
+                hint: nil,
+                img: "Presentation Image - Art of Communication The Audience"
+            ),
+            PresentationPart(
+                id: "3",
+                title: "Reorganise",
+                content: tokenizeStr("You may have lots of things to say.\n \nIdentify and <h>group your thoughts</h>.\n \nReorganise these ideas to tell a <h>story</h>."),
+                hint: nil,
+                img: "Presentation Image - Art of Communication Reorganise"
+            ),
+            PresentationPart(
+                id: "4",
+                title: "Simplify",
+                content: tokenizeStr("<h>Simplify</h>, complexity confuses the audience.\n \nLeave out the details until asked.\n \nYour goal is to <h>communicate not to impress</h>."),
+                hint: nil,
+                img: "Presentation Image - Art of Communication Simplify"
+            ),
+            PresentationPart(
+                id: "5",
+                title: "Associate with the Audience",
+                content: tokenizeStr("<h>Reframe your ideas</h> to something your audience can <h>associate to</h>.\n \nUse <h>analogies</h>, and mediums like <h>images</h> and <h>videos</h> to get create associations."),
+                hint: nil,
+                img: "Presentation Image - Art of Communication Associate"
+            ),
+            PresentationPart(
+                id: "6",
+                title: "Listen",
+                content: tokenizeStr("Communication is also about listening.\n \n<h>Paraphrase what you heard</h> and <h>reflect it back</h>.\n \nThis gives a chance for the speaker to gauge understanding."),
+                hint: nil,
+                img: "Presentation Image - Art of Communication Listen"
+            ),
+            PresentationPart(
+                id: "7",
+                title: "Good communication is about...",
+                content: tokenizeStr("Good communication makes your audience <h>feel smart when they understand</h>, and <h>feel appreciated when heard</h>."),
+                hint: nil,
+                img: "Presentation Image - Art of Communication Good Communication"
+            ),
+            PresentationPart(
+                id: "8",
+                title: "Keep Practicing",
+                content: tokenizeStr("Like any skill, getting good at communicating <h>requires practice</h>.\n \nLeverage on opportunities to <h>talk to people</h> and <h>use tools</h> like Presently to practice communication.\n \nSo <h>keep practicing</h>."),
+                hint: nil,
+                img: "Presentation Image - Art of Communication Practice"
+            ),
+        ],
+        context: tokenizeStr("You will share what constitutes good communication."),
+        imgFull: "Display Image - Art of Communication Full",
+        imgCompact: "Display Image - Art of Communication Compact",
+        imgRegular: "Display Image - Art of Communication Regular"
+    )
+    
 }
 

@@ -8,7 +8,8 @@ struct PresentationSelectionView: View {
     let size: AppContentSize
     
     @State var All: [Presentation] = [
-        AppPresentations.PlaygroundObservationsPresentation
+        AppPresentations.PlaygroundObservationsPresentation,
+        AppPresentations.ArtOfCommunicationPresentation
     ]
     
     var body: some View {
