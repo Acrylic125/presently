@@ -137,7 +137,7 @@ public struct AppPresentations {
             PresentationPart(
                 id: "2",
                 title: "Think about the audience",
-                content: tokenizeStr("Firstly, understand who your <h>audience</h> is.\n \nFind out what sort of people they are, their generalinterests, and passion.\n \nThis orients what you plan to <h>communicate</h> and how you <h>frame</h> things."),
+                content: tokenizeStr("Firstly, understand who your <h>audience</h> is.\n \nFind out what sort of people they are, their general interests, and passion.\n \nThis orients what you plan to <h>communicate</h> and how you <h>frame</h> things."),
                 hint: nil,
                 img: "Presentation Image - Art of Communication The Audience"
             ),
