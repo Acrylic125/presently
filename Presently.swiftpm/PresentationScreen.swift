@@ -54,8 +54,11 @@ struct PresentationToolbar<Content: View>: View {
                     )
                     .opacity(toolbarAppearTransitionState)
                     .scaleEffect(
-                        x: toolbarAppearTransitionState,
+                        x: 0.5 + (toolbarAppearTransitionState * 0.5),
                         y: 0.5 + (toolbarAppearTransitionState * 0.5)
+//                        x: toolbarAppearTransitionState,
+//                        y: toolbarAppearTransitionState
+//                        y: 0.5 + (toolbarAppearTransitionState * 0.5)
                     )
                     .offset(
                         y: (1 - toolbarAppearTransitionState) * 24
@@ -80,7 +83,9 @@ struct PresentationToolbar<Content: View>: View {
                     )
                     .opacity(toolbarAppearTransitionState)
                     .scaleEffect(
-                        x: toolbarAppearTransitionState,
+//                        x: toolbarAppearTransitionState,
+//                        y: toolbarAppearTransitionState
+                        x: 0.5 + (toolbarAppearTransitionState * 0.5),
                         y: 0.5 + (toolbarAppearTransitionState * 0.5)
                     )
                     .offset(

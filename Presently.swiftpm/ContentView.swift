@@ -59,6 +59,7 @@ struct PresentationSelectionView: View {
                                                     maxWidth: 440,
                                                     alignment: .leading
                                                 )
+                                                .multilineTextAlignment(.leading)
                                                 .foregroundStyle(AppColors.Gray50.color)
                                                 .font(.system(size: containerTextSize.rawValue, weight: .black))
                                         }
