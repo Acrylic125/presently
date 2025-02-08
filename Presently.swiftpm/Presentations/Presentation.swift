@@ -77,7 +77,7 @@ public struct AppPresentations {
             PresentationPart(
                 id: "2",
                 title: "The Ground",
-                content: tokenizeStr("Rubber ground, with a musky smell.\n \nGround <h>covered in leaves<h>, with the <h>scent of leaves</h>."),
+                content: tokenizeStr("Rubber ground, with a musky smell.\n \nGround <h>covered in leaves</h>, with the <h>scent of leaves</h>."),
                 hint: nil,
                 img: "Presentation Image - Playground Observations Leaves"
             ),
