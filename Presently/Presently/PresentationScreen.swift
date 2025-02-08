@@ -56,9 +56,6 @@ struct PresentationToolbar<Content: View>: View {
                     .scaleEffect(
                         x: 0.5 + (toolbarAppearTransitionState * 0.5),
                         y: 0.5 + (toolbarAppearTransitionState * 0.5)
-//                        x: toolbarAppearTransitionState,
-//                        y: toolbarAppearTransitionState
-//                        y: 0.5 + (toolbarAppearTransitionState * 0.5)
                     )
                     .offset(
                         y: (1 - toolbarAppearTransitionState) * 24
@@ -159,7 +156,7 @@ struct PresentationView: View {
     var body: some View {
         ZStack(alignment: .topLeading) {
             if (viewType == .Overview) {
-                PresentationOverviewView(
+                PresentationOverviewScreen(
                     title: presentation.title,
                     context: presentation.context,
                     img: presentation.imgFull,
@@ -168,20 +165,20 @@ struct PresentationView: View {
                     speechRecognizer: speechRecognizer
                 )
             } else if (viewType == .Prepare) {
-                PresentationPrepareView(
+                PresentationPrepareScreen(
                     title: presentation.title,
                     presentationParts: presentation.parts,
                     viewType: $viewType,
                     speechRecognizer: speechRecognizer
                 )
             } else if (viewType == .Results) {
-                ResultsView(
+                ResultsScreen(
                     title: presentation.title,
                     presentationParts: presentation.parts,
                     speechRecognizer: speechRecognizer
                 )
             } else {
-                PresentationPresentView(
+                PresentationPresentScreen(
                     title: presentation.title,
                     presentationParts: presentation.parts,
                     viewType: $viewType,

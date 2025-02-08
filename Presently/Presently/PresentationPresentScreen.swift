@@ -404,7 +404,7 @@ struct PresentationPresentContentView: View {
     }
 }
 
-struct PresentationPresentView: View {
+struct PresentationPresentScreen: View {
     let title: String;
     let presentationParts: [PresentationPart];
 

@@ -477,7 +477,7 @@ extension Binding {
     }
 }
 
-public struct ResultsView: View {
+public struct ResultsScreen: View {
     let title: String;
     let presentationParts: [PresentationPart];
 
@@ -519,12 +519,6 @@ public struct ResultsView: View {
             )
             
             PresentationViewCloseButton(onClose: self.onClose)
-                .onAppear() {
-    //                animateIn()
-                }
-                .onDisappear() {
-    //                speechRecognizer.stop()
-                }
         }
         .ignoresSafeArea()
         .navigationBarBackButtonHidden()

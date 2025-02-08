@@ -46,7 +46,7 @@ struct PresentationOverviewContentView: View {
     }
 }
 
-struct PresentationOverviewView: View {
+struct PresentationOverviewScreen: View {
     let title: String;
     let context: [StringToken];
     let img: String;

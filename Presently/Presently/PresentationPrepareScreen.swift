@@ -170,7 +170,7 @@ struct PresentationPrepareContentView: View {
     }
 }
 
-struct PresentationPrepareView: View {
+struct PresentationPrepareScreen: View {
     let title: String;
     let presentationParts: [PresentationPart];
 
