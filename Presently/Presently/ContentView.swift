@@ -141,9 +141,12 @@ struct PresentationSelectionView: View {
 
 struct ContentView: View {
 
-  @State private var microphonePermission: AVAudioApplication.recordPermission = .undetermined
-  @State private var speechRecognitionPermission: SFSpeechRecognizerAuthorizationStatus =
-    .notDetermined
+  @State private var microphonePermission: AVAudioApplication.recordPermission = {
+    return AVAudioApplication.shared.recordPermission
+  }()
+  @State private var speechRecognitionPermission: SFSpeechRecognizerAuthorizationStatus = {
+    return SFSpeechRecognizer.authorizationStatus()
+  }()
 
   @Environment(\.horizontalSizeClass) var horizontalSizeClass
 
@@ -153,29 +156,23 @@ struct ContentView: View {
     let size: AppContentSize = horizontalSizeClass == .regular ? .large : .small
 
     let headerTextSize: AppFontSize = horizontalSizeClass == .regular ? .xl4 : .xl3
+    let granted = microphonePermission == .granted && speechRecognitionPermission == .authorized
 
-    VStack(alignment: .leading) {
-      if microphonePermission == .granted && speechRecognitionPermission == .authorized {
-        ScrollView {
-          VStack(alignment: .leading) {
-            Text("Get Practicing")
-              .frame(
-                maxWidth: 440,
-                alignment: .leading
-              )
-              .foregroundStyle(AppColors.Gray50.color)
-              .font(.system(size: headerTextSize.rawValue, weight: .black))
-
-            PresentationSelectionView(
-              size: size
-            )
+    ZStack(alignment: .leading) {
+      ScrollView {
+        VStack(alignment: .leading) {
+          Text("Get Practicing")
             .frame(
-              maxHeight: .infinity,
+              maxWidth: 440,
               alignment: .leading
             )
-          }
+            .foregroundStyle(AppColors.Gray50.color)
+            .font(.system(size: headerTextSize.rawValue, weight: .black))
+
+          PresentationSelectionView(
+            size: size
+          )
           .frame(
-            maxWidth: .infinity,
             maxHeight: .infinity,
             alignment: .leading
           )
@@ -185,14 +182,23 @@ struct ContentView: View {
           maxHeight: .infinity,
           alignment: .leading
         )
-        .safeAreaPadding(safeAreaInsets)
-        .padding(.horizontal, 24)
-        .padding(.vertical, 24)
-      } else {
-        PermissionScreen(
-          microphonePermission: $microphonePermission,
-          speechRecognitionPermission: $speechRecognitionPermission
-        )
+      }
+      .frame(
+        maxWidth: .infinity,
+        maxHeight: .infinity,
+        alignment: .leading
+      )
+      .safeAreaPadding(safeAreaInsets)
+      .padding(.horizontal, 24)
+      .padding(.vertical, 24)
+
+      if !granted {
+        ZStack {
+          PermissionScreen(
+            microphonePermission: $microphonePermission,
+            speechRecognitionPermission: $speechRecognitionPermission
+          )
+        }
       }
     }
     .onAppear {
